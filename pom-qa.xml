@@ -4,8 +4,8 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>net.adshares.esc.qa</groupId>
-    <artifactId>esc-qa</artifactId>
+    <groupId>net.adshares.ads.qa</groupId>
+    <artifactId>ads-qa</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
@@ -80,7 +80,7 @@
                         </goals>
                         <configuration>
                             <sources>
-                                <source>./test/esc-qa/src</source>
+                                <source>./qa/src</source>
                             </sources>
                         </configuration>
                     </execution>
@@ -93,7 +93,7 @@
                         <configuration>
                             <resources>
                                 <resource>
-                                    <directory>./test/esc-qa/config</directory>
+                                    <directory>./qa/config</directory>
                                 </resource>
                             </resources>
                         </configuration>
