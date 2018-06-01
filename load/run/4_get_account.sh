@@ -12,4 +12,3 @@ cd ${esc}
 echo ------------------------------ get_account -------------------------------
 echo
 echo '{"run":"get_account","address":"'${_address_x}'"}' | docker exec -i adshares_esc_1 esc -n${Valid}  -P${port_x} -Hesc.dock -A${_address_x} -s${_secret_x}
-
