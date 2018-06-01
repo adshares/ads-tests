@@ -55,6 +55,23 @@ public class FunctionCaller {
     }
 
     /**
+     * Calls change_account_key function.
+     *
+     * @param userData user data
+     * @param publicKey  new public key
+     * @param signature  empty String signed with new private key
+     * @return response: json when request was correct, empty otherwise
+     */
+    public String changeAccountKey(UserData userData, String publicKey, String signature) {
+        log.info("changeAccountKey");
+        String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"change_account_key\", \"pkey\":\"%s\", \"signature\":\"%s\"}') | ", publicKey, signature)
+                .concat(ESC_BINARY).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
+        String output = callFunction(command);
+        output = output.replaceFirst(".*}\\s*\\{", "{");
+        return output;
+    }
+
+    /**
      * Calls get_block function.
      *
      * @param userData user data

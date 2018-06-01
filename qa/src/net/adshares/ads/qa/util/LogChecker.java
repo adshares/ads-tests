@@ -92,7 +92,7 @@ public class LogChecker {
 
 
                 BigDecimal amount;
-                if ("create_account".equals(type) || "change_account_key".equals(type)
+                if ("create_account".equals(type)
                         || "send_one".equals(type) || "send_many".equals(type)
                         || "broadcast".equals(type) // type_no == 3
                         || ("retrieve_funds".equals(type) && "8".equals(typeNo)) // retrieve_funds call
@@ -129,8 +129,8 @@ public class LogChecker {
                     // create_node request accepted
                     amount = BigDecimal.ZERO;
 
-                } else if ("retrieve_funds".equals(type) && "32776".equals(typeNo)) {
-                    // retrieve_funds response
+                } else if (("retrieve_funds".equals(type) && "32776".equals(typeNo))// retrieve_funds response
+                        || "change_account_key".equals(type)) {
 
                     // sender_fee is included in amount:
                     // amount = sender_amount - sender_fee

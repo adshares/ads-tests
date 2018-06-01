@@ -9,7 +9,7 @@ public class UserData {
     private final String port;
     private final String host;
     private final String address;
-    private final String secret;
+    private String secret;
 
     public UserData(String port, String host, String address, String secret) {
         this.port = port;
@@ -27,6 +27,15 @@ public class UserData {
      */
     public String getDataAsEscParams() {
         return String.format(" -P%s -H%s -A%s -s%s", port, host, address, secret);
+    }
+
+    /**
+     * Sets account private key.
+     *
+     * @param secret new secret key
+     */
+    public void setSecret(String secret) {
+        this.secret = secret;
     }
 
     /**

@@ -19,6 +19,10 @@ public class EscConst {
      */
     public static final int BROADCAST_MESSAGE_MAX_SIZE = 32000;
     /**
+     * TXS_KEY_FEE change account key fee
+     */
+    public static final BigDecimal CHANGE_ACCOUNT_KEY_FEE = new BigDecimal("0.00010000000");
+    /**
      * TXS_MIN_FEE minimum transfer fee
      */
     public static final BigDecimal MIN_TX_FEE = new BigDecimal("0.00000010000");
