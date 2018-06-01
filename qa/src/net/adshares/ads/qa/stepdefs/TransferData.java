@@ -1,4 +1,4 @@
-package net.adshares.esc.qa.stepdefs;
+package net.adshares.ads.qa.stepdefs;
 
 import java.math.BigDecimal;
 

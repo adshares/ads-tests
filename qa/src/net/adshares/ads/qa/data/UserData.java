@@ -1,6 +1,6 @@
-package net.adshares.esc.qa.data;
+package net.adshares.ads.qa.data;
 
-import net.adshares.esc.qa.util.EscConst;
+import net.adshares.ads.qa.util.EscConst;
 
 import java.math.BigDecimal;
 

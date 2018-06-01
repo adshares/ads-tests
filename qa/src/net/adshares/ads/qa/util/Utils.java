@@ -1,4 +1,4 @@
-package net.adshares.esc.qa.util;
+package net.adshares.ads.qa.util;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -6,6 +6,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.text.SimpleDateFormat;
@@ -56,16 +57,43 @@ public class Utils {
     }
 
     /**
-     * Adds intendation to json String.
+     * Converts String to JsonObject.
+     *
+     * @param jsonString json formatted String
+     * @return JsonObject
+     */
+    public static JsonObject convertStringToJsonObject(String jsonString) {
+        JsonParser parser = new JsonParser();
+        return parser.parse(jsonString).getAsJsonObject();
+    }
+
+    /**
+     * Adds indentation to json String.
      *
      * @param jsonString json String
      * @return formatted json String
      */
-    public String jsonPrettyPrint(String jsonString) {
-        JsonParser parser = new JsonParser();
-        JsonObject json = parser.parse(jsonString).getAsJsonObject();
-
+    public static String jsonPrettyPrint(String jsonString) {
+        JsonObject json = convertStringToJsonObject(jsonString);
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
         return gson.toJson(json);
+    }
+
+    /**
+     * Return file content as String.
+     *
+     * @param fileName file name
+     * @return file content or empty String, if error occurred
+     */
+    public static String readFileAsString(String fileName) {
+        byte[] encoded;
+        String fileContent;
+        try {
+            encoded = Files.readAllBytes(Paths.get(fileName));
+            fileContent = new String(encoded, StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            fileContent = "";
+        }
+        return fileContent;
     }
 }

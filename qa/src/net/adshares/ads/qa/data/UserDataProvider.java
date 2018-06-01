@@ -1,4 +1,4 @@
-package net.adshares.esc.qa.data;
+package net.adshares.ads.qa.data;
 
 import com.google.gson.Gson;
 import org.junit.Assert;

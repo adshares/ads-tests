@@ -1,4 +1,4 @@
-package net.adshares.esc.qa.util;
+package net.adshares.ads.qa.util;
 
 import com.google.gson.JsonObject;
 
