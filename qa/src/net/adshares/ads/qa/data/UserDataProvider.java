@@ -146,27 +146,36 @@ public class UserDataProvider {
     }
 
     /**
-     * Adds user to list.
+     * Makes copy of user data with given address and adds it to list.
      *
      * @param userData user data
      */
-    public void addUser(UserData userData) {
-        if (userData != null) {
-            String address = userData.getAddress();
-            if (address != null) {
-                boolean userExist = false;
-                for (UserData user : users) {
-                    if (address.equals(user.getAddress())) {
-                        userExist = true;
-                        break;
-                    }
+    public UserData cloneUser(UserData userData, String address) {
+        if (userData != null && address != null) {
+
+            boolean isAddressInList = false;
+            for (UserData user : users) {
+                if (address.equals(user.getAddress())) {
+                    isAddressInList = true;
+                    break;
                 }
-                if (!userExist) {
-                    users.add(userData);
+            }
+            if (!isAddressInList) {
+                String node = address.substring(0, 4);
+                for (UserData user : users) {
+                    if (node.equals(user.getAddress().substring(0, 4))) {
+                        String port = user.getPort();
+                        String host = user.getHost();
+
+                        UserData u = new UserData(port, host, address, userData.getSecret());
+                        users.add(u);
+                        return u;
+                    }
                 }
             }
 
         }
+        return null;
     }
 
 }

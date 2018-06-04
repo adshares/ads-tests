@@ -143,8 +143,7 @@ public class AccountStepDefs {
             address = o.getAsJsonObject("new_account").get("address").getAsString();
         }
         Assert.assertTrue("Created address is not valid", EscUtils.isValidAccountAddress(address));
-        createdUserData = userData.clone(address);
-        UserDataProvider.getInstance().addUser(createdUserData);
+        createdUserData = UserDataProvider.getInstance().cloneUser(userData, address);
     }
 
     @Then("^account is created$")

@@ -18,8 +18,20 @@ public class UserData {
         this.secret = secret;
     }
 
+    String getPort() {
+        return port;
+    }
+
+    String getHost() {
+        return host;
+    }
+
     public String getAddress() {
         return address;
+    }
+
+    String getSecret() {
+        return secret;
     }
 
     /**
@@ -91,15 +103,5 @@ public class UserData {
      */
     public BigDecimal getMinAllowedBalance() {
         return isMainAccount() ? EscConst.BANK_MIN_UMASS : EscConst.USER_MIN_MASS;
-    }
-
-    /**
-     * Creates copy of UserData object with new address.
-     *
-     * @param newAddress account address
-     * @return copy of UserData object with new address
-     */
-    public UserData clone(String newAddress) {
-        return new UserData(port, host, newAddress, secret);
     }
 }
