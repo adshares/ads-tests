@@ -13,5 +13,10 @@ Feature: Account features
     When user creates account
     Then account is created
 
+  Scenario: Create remote account
+    Given user, who wants to create account
+    When user creates remote account
+    Then account is created
+
   Scenario: Check log
     Given user log

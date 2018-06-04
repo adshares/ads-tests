@@ -1,5 +1,7 @@
 package net.adshares.ads.qa.stepdefs;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import cucumber.api.java.en.Given;
 import cucumber.api.java.en.Then;
@@ -100,9 +102,22 @@ public class AccountStepDefs {
                 0, EscConst.CHANGE_ACCOUNT_KEY_FEE.compareTo(feeFromLog));
     }
 
-    @When("^user creates account$")
-    public void user_creates_account() {
-        String resp = FunctionCaller.getInstance().createAccount(userData);
+    @When("^user creates( remote)? account$")
+    public void user_creates_account(String accountType) {
+        boolean isRemote = " remote".equals(accountType);
+        FunctionCaller fc = FunctionCaller.getInstance();
+
+        String resp;
+        if (isRemote) {
+            String userNode = userData.getAddress().substring(0, 4);
+            String node = getDifferentNodeId(userData, userNode);
+            Assert.assertNotNull("Not able to find different node", node);
+            // Function create_account takes node parameter in decimal format
+            node = Integer.valueOf(node, 16).toString();
+            resp = requestRemoteAccountCreation(userData, node);
+        } else {
+            resp = fc.createAccount(userData);
+        }
 
         Assert.assertTrue("Create account transaction was not accepted by node",
                 EscUtils.isTransactionAcceptedByNode(resp));
@@ -110,18 +125,26 @@ public class AccountStepDefs {
         JsonObject o = Utils.convertStringToJsonObject(resp);
         BigDecimal fee = o.getAsJsonObject("tx").get("fee").getAsBigDecimal();
         BigDecimal deduct = o.getAsJsonObject("tx").get("deduct").getAsBigDecimal();
-        Assert.assertEquals("Invalid fee computed", 0, EscConst.CREATE_ACCOUNT_LOCAL_FEE.compareTo(fee));
-        BigDecimal expectedDeduct = EscConst.CREATE_ACCOUNT_LOCAL_FEE.add(EscConst.USER_MIN_MASS);
+        BigDecimal expectedFee = EscConst.CREATE_ACCOUNT_LOCAL_FEE;
+        if (isRemote) {
+            // remote transaction has additional fee for remote node
+            expectedFee = expectedFee.add(EscConst.CREATE_ACCOUNT_REMOTE_FEE);
+        }
+        Assert.assertEquals("Invalid fee computed", 0, expectedFee.compareTo(fee));
+        BigDecimal expectedDeduct = expectedFee.add(EscConst.USER_MIN_MASS);
         Assert.assertEquals("Invalid deduct computed", 0, expectedDeduct.compareTo(deduct));
 
 
-        if (o.has("new_account")) {
-            String address = o.getAsJsonObject("new_account").get("address").getAsString();
-            Assert.assertTrue("Created address is not valid", EscUtils.isValidAccountAddress(address));
-
-            createdUserData = userData.clone(address);
-            UserDataProvider.getInstance().addUser(createdUserData);
+        String address;
+        if (isRemote) {
+            address = getCreatedAccountAddressFromLog();
+        } else {
+            Assert.assertTrue("Missing \"new_account\" object in response.", o.has("new_account"));
+            address = o.getAsJsonObject("new_account").get("address").getAsString();
         }
+        Assert.assertTrue("Created address is not valid", EscUtils.isValidAccountAddress(address));
+        createdUserData = userData.clone(address);
+        UserDataProvider.getInstance().addUser(createdUserData);
     }
 
     @Then("^account is created$")
@@ -139,7 +162,7 @@ public class AccountStepDefs {
                 String errorDesc = o.get("error").getAsString();
                 log.info("Error occurred: {}", errorDesc);
                 Assert.assertEquals("Unexpected error after account creation.",
-                        EscConst.Error.GET_GLOBAL_USER_FAIL, errorDesc);
+                        EscConst.Error.GET_GLOBAL_USER_FAILED, errorDesc);
             } else {
                 BigDecimal balance = o.getAsJsonObject("account").get("balance").getAsBigDecimal();
                 log.info("Balance {}", balance.toPlainString());
@@ -149,5 +172,104 @@ public class AccountStepDefs {
             Assert.assertTrue("Cannot get account info after delay", attempt < attemptMax);
             EscUtils.waitForNextBlock();
         }
+    }
+
+    /**
+     * Requests account creation few times with delay.
+     *
+     * @param userData user data
+     * @param node node in which account should be created
+     * @return response: json when request was correct, empty otherwise
+     */
+    private String requestRemoteAccountCreation(UserData userData, String node) {
+        String resp = "";
+        int attempt = 0;
+        int attemptMax = 4;
+        while (attempt++ < attemptMax) {
+
+            resp = FunctionCaller.getInstance().createAccount(userData, node);
+            JsonObject o = Utils.convertStringToJsonObject(resp);
+
+            if (o.has("error")) {
+                String errorDesc = o.get("error").getAsString();
+                log.info("Error occurred: {}", errorDesc);
+                Assert.assertEquals("Unexpected error after account creation.",
+                        EscConst.Error.CREATE_ACCOUNT_BAD_TIMING, errorDesc);
+            } else {
+                break;
+            }
+
+            Assert.assertTrue("Cannot create remote account.", attempt < attemptMax);
+            // remote account creation cannot be requested in first 8 seconds of block,
+            // therefore there is delay
+            try {
+                Thread.sleep(4000L);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        return resp;
+    }
+
+    private String getCreatedAccountAddressFromLog() {
+        String address = null;
+
+        LogFilter lf = new LogFilter(true);
+        lf.addFilter("type", "account_created");
+
+        int attempt = 0;
+        int attemptMax = 3;
+        while (attempt++ < attemptMax) {
+            EscUtils.waitForNextBlock();
+
+            LogChecker lc = new LogChecker(FunctionCaller.getInstance().getLog(userData, lastEventTimestamp));
+            JsonArray arr = lc.getFilteredLogArray(lf);
+            if (arr.size() > 0) {
+                JsonObject accCrObj = arr.get(arr.size() - 1).getAsJsonObject();
+                Assert.assertEquals("Request was not accepted.","accepted", accCrObj.get("request").getAsString());
+                address = accCrObj.get("address").getAsString();
+                break;
+            }
+
+            Assert.assertTrue("Cannot get account address after delay", attempt < attemptMax);
+        }
+
+        return address;
+    }
+
+    private String getDifferentNodeId(UserData userData, String nodeId) {
+        // Sometimes account is created with delay,
+        // therefore there are next attempts.
+        int attempt = 0;
+        int attemptMax = 4;
+        while (attempt++ < attemptMax) {
+            String resp = FunctionCaller.getInstance().getBlock(userData);
+            JsonObject o = Utils.convertStringToJsonObject(resp);
+            if (o.has("error")) {
+                String errorDesc = o.get("error").getAsString();
+                log.info("Error occurred: {}", errorDesc);
+                Assert.assertEquals("Unexpected error after account creation.",
+                        EscConst.Error.GET_BLOCK_INFO_FAILED, errorDesc);
+            } else {
+                JsonArray arr = o.getAsJsonObject("block").getAsJsonArray("nodes");
+                for (JsonElement je : arr) {
+                    String tmpNodeId = je.getAsJsonObject().get("id").getAsString();
+                    if (!"0000".equals(tmpNodeId) && !nodeId.equals(tmpNodeId)) {
+                        return tmpNodeId;
+                    }
+                }
+                return null;
+            }
+
+            Assert.assertTrue("Cannot get block info after delay", attempt < attemptMax);
+            // block info is not available for short time after block change,
+            // therefore there is 3 s delay - it cannot be "wait for next block"
+            try {
+                Thread.sleep(3000L);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        return null;
     }
 }
