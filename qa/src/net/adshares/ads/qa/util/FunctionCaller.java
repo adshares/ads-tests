@@ -17,7 +17,7 @@ import java.util.Map;
 
 public class FunctionCaller {
 
-    private static final String ESC_BINARY = "docker exec -i -w /tmp/esc adshares_esc_1 esc";
+    private static final String ESC_BINARY = "docker exec -i -w /tmp/esc adshares_ads_1 esc";
     private static final String ESC_BINARY_OPTS = " -n0 ";
     /**
      * Name of temporary file that is created for commands that cannot be called directly in shell
@@ -57,14 +57,45 @@ public class FunctionCaller {
     /**
      * Calls change_account_key function.
      *
-     * @param userData user data
-     * @param publicKey  new public key
-     * @param signature  empty String signed with new private key
+     * @param userData  user data
+     * @param publicKey new public key
+     * @param signature empty String signed with new private key
      * @return response: json when request was correct, empty otherwise
      */
     public String changeAccountKey(UserData userData, String publicKey, String signature) {
         log.info("changeAccountKey");
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"change_account_key\", \"pkey\":\"%s\", \"signature\":\"%s\"}') | ", publicKey, signature)
+                .concat(ESC_BINARY).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
+        String output = callFunction(command);
+        output = output.replaceFirst(".*}\\s*\\{", "{");
+        return output;
+    }
+
+    /**
+     * Calls create_account function.
+     *
+     * @param userData user data
+     * @return response: json when request was correct, empty otherwise
+     */
+    public String createAccount(UserData userData) {
+        log.info("createAccount in current node");
+        String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"create_account\"}') | ")
+                .concat(ESC_BINARY).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
+        String output = callFunction(command);
+        output = output.replaceFirst(".*}\\s*\\{", "{");
+        return output;
+    }
+
+    /**
+     * Calls create_account function.
+     *
+     * @param userData user data
+     * @param node     node in which account should be created
+     * @return response: json when request was correct, empty otherwise
+     */
+    public String createAccount(UserData userData, String node) {
+        log.info("createAccount in {} node", node);
+        String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"create_account\", \"node\":\"%s\"}') | ", node)
                 .concat(ESC_BINARY).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
         String output = callFunction(command);
         output = output.replaceFirst(".*}\\s*\\{", "{");
@@ -148,7 +179,7 @@ public class FunctionCaller {
     /**
      * Calls get_log function for specific user.
      *
-     * @param userData      user data
+     * @param userData          user data
      * @param logEventTimeStamp log start timestamp
      * @return response: json when request was correct, empty otherwise
      */
@@ -170,7 +201,7 @@ public class FunctionCaller {
                     Iterator<JsonElement> it = arr.iterator();
 
                     int eventCount = 0;
-                    while(it.hasNext()) {
+                    while (it.hasNext()) {
                         JsonObject entry = it.next().getAsJsonObject();
                         // events in log are sorted by time:
                         // if event time is different than timestamp,

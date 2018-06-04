@@ -15,6 +15,10 @@ public class EscConst {
      */
     public static final int BLOCK_PERIOD = 32;
     /**
+     * block period in milliseconds
+     */
+    public static final long BLOCK_PERIOD_MS = 1000L * BLOCK_PERIOD;
+    /**
      * Maximum message size in bytes that can be broadcast
      */
     public static final int BROADCAST_MESSAGE_MAX_SIZE = 32000;
@@ -22,6 +26,14 @@ public class EscConst {
      * TXS_KEY_FEE change account key fee
      */
     public static final BigDecimal CHANGE_ACCOUNT_KEY_FEE = new BigDecimal("0.00010000000");
+    /**
+     * TXS_USR_FEE create user fee (local)
+     */
+    public static final BigDecimal CREATE_ACCOUNT_LOCAL_FEE = new BigDecimal("0.00100000000");
+    /**
+     * TXS_RUS_FEE create user fee (additional fee for remote)
+     */
+    public static final BigDecimal CREATE_ACCOUNT_REMOTE_FEE = new BigDecimal("0.00100000000");
     /**
      * TXS_MIN_FEE minimum transfer fee
      */
@@ -69,5 +81,6 @@ public class EscConst {
     public class Error {
         public static final String BROADCAST_NOT_READY = "Broadcast not ready, try again later";
         public static final String BROADCAST_NO_FILE_TO_SEND = "No broadcast file to send";
+        public static final String GET_GLOBAL_USER_FAIL = "Failed to get global user info";
     }
 }

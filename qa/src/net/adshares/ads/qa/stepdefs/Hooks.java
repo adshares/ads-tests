@@ -33,12 +33,12 @@ public class Hooks {
 
             FunctionCaller fc = FunctionCaller.getInstance();
             // deletes esc cache in docker
-            fc.callFunction("docker exec -i adshares_esc_1 rm -rf /tmp/esc");
-            fc.callFunction("docker exec -i adshares_esc_1 mkdir /tmp/esc");
+            fc.callFunction("docker exec -i adshares_ads_1 rm -rf /tmp/esc");
+            fc.callFunction("docker exec -i adshares_ads_1 mkdir /tmp/esc");
             // waits for esc compilation
             String resp;
             do {
-                resp = fc.callFunction("docker exec -i adshares_esc_1 /docker/wait-up.php");
+                resp = fc.callFunction("docker exec -i adshares_ads_1 /docker/wait-up.php");
                 Assert.assertFalse("Timeout during docker start", resp.contains("timeout"));
                 Assert.assertNotEquals("No response from docker", "", resp);
             } while(!resp.contains("started"));

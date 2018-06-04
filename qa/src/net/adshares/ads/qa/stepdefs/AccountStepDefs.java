@@ -31,10 +31,17 @@ public class AccountStepDefs {
     private static final String SIGNATURE = "1F0571D30661FB1D50BE0D61A0A0E97BAEFF8C030CD0269ADE49438A4AD4CF897367E21B100C694F220D922200B3AB852A377D8857A64C36CB1569311760F303";
 
     private UserData userData;
+    private UserData createdUserData;
     private LogEventTimestamp lastEventTimestamp;
 
     @Given("^user, who wants to change key$")
     public void user_who_wants_to_change_key() {
+        userData = UserDataProvider.getInstance().getUserDataList(1).get(0);
+        lastEventTimestamp = FunctionCaller.getInstance().getLastEventTimestamp(userData).incrementEventNum();
+    }
+
+    @Given("^user, who wants to create account$")
+    public void user_who_wants_to_create_account() {
         userData = UserDataProvider.getInstance().getUserDataList(1).get(0);
         lastEventTimestamp = FunctionCaller.getInstance().getLastEventTimestamp(userData).incrementEventNum();
     }
@@ -91,5 +98,56 @@ public class AccountStepDefs {
 
         Assert.assertEquals("Invalid deduct computed",
                 0, EscConst.CHANGE_ACCOUNT_KEY_FEE.compareTo(feeFromLog));
+    }
+
+    @When("^user creates account$")
+    public void user_creates_account() {
+        String resp = FunctionCaller.getInstance().createAccount(userData);
+
+        Assert.assertTrue("Create account transaction was not accepted by node",
+                EscUtils.isTransactionAcceptedByNode(resp));
+
+        JsonObject o = Utils.convertStringToJsonObject(resp);
+        BigDecimal fee = o.getAsJsonObject("tx").get("fee").getAsBigDecimal();
+        BigDecimal deduct = o.getAsJsonObject("tx").get("deduct").getAsBigDecimal();
+        Assert.assertEquals("Invalid fee computed", 0, EscConst.CREATE_ACCOUNT_LOCAL_FEE.compareTo(fee));
+        BigDecimal expectedDeduct = EscConst.CREATE_ACCOUNT_LOCAL_FEE.add(EscConst.USER_MIN_MASS);
+        Assert.assertEquals("Invalid deduct computed", 0, expectedDeduct.compareTo(deduct));
+
+
+        if (o.has("new_account")) {
+            String address = o.getAsJsonObject("new_account").get("address").getAsString();
+            Assert.assertTrue("Created address is not valid", EscUtils.isValidAccountAddress(address));
+
+            createdUserData = userData.clone(address);
+            UserDataProvider.getInstance().addUser(createdUserData);
+        }
+    }
+
+    @Then("^account is created$")
+    public void account_is_created() {
+
+        // Sometimes account is created with delay,
+        // therefore there are next attempts.
+        int attempt = 0;
+        int attemptMax = 3;
+        while (attempt++ < attemptMax) {
+            String resp = FunctionCaller.getInstance().getMe(createdUserData);
+            JsonObject o = Utils.convertStringToJsonObject(resp);
+
+            if (o.has("error")) {
+                String errorDesc = o.get("error").getAsString();
+                log.info("Error occurred: {}", errorDesc);
+                Assert.assertEquals("Unexpected error after account creation.",
+                        EscConst.Error.GET_GLOBAL_USER_FAIL, errorDesc);
+            } else {
+                BigDecimal balance = o.getAsJsonObject("account").get("balance").getAsBigDecimal();
+                log.info("Balance {}", balance.toPlainString());
+                break;
+            }
+
+            Assert.assertTrue("Cannot get account info after delay", attempt < attemptMax);
+            EscUtils.waitForNextBlock();
+        }
     }
 }

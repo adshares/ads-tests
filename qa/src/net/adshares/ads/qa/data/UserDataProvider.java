@@ -145,4 +145,28 @@ public class UserDataProvider {
         return userData;
     }
 
+    /**
+     * Adds user to list.
+     *
+     * @param userData user data
+     */
+    public void addUser(UserData userData) {
+        if (userData != null) {
+            String address = userData.getAddress();
+            if (address != null) {
+                boolean userExist = false;
+                for (UserData user : users) {
+                    if (address.equals(user.getAddress())) {
+                        userExist = true;
+                        break;
+                    }
+                }
+                if (!userExist) {
+                    users.add(userData);
+                }
+            }
+
+        }
+    }
+
 }

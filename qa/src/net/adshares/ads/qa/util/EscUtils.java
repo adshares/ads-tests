@@ -79,4 +79,45 @@ public class EscUtils {
         time += EscConst.BLOCK_PERIOD;
         return Integer.toHexString(time);
     }
+
+    /**
+     * Checks, if account address is valid.
+     *
+     * @param address String to validate as account address
+     * @return true, if account addess is in correct format, false otherwise
+     */
+    public static boolean isValidAccountAddress(String address) {
+        if (address != null && address.length() == 18) {
+
+            if ('-' == address.charAt(4) && '-' == address.charAt(13)) {
+                String node = address.substring(0, 4);
+                String num = address.substring(5, 13);
+                String checksum = address.substring(14);
+                try {
+                    Integer.valueOf(node, 16);
+                    Integer.valueOf(num, 16);
+                    if (!"XXXX".equals(checksum)) {
+                        Integer.valueOf(checksum, 16);
+                    }
+                    return true;
+                } catch (NumberFormatException nfe) {
+                    return false;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Waits for start of next block.
+     */
+    public static void waitForNextBlock() {
+        long timeAfterLastBlock = System.currentTimeMillis() % EscConst.BLOCK_PERIOD_MS;
+
+        try {
+            Thread.sleep(EscConst.BLOCK_PERIOD_MS - timeAfterLastBlock);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
 }
