@@ -125,6 +125,15 @@ public class LogChecker {
                         }
                     }
 
+                } else if ("account_created".equals(type)) {// type_no == 32770 create remote account response
+                    if (logEntry.has("amount")) {
+                        // response: failed - account was not created
+                        amount = logEntry.get("amount").getAsBigDecimal();
+                    } else {
+                        // response: success - account was created
+                        amount = BigDecimal.ZERO;
+                    }
+
                 } else if ("create_node".equals(type) && "32775".equals(typeNo)) {
                     // create_node request accepted
                     amount = BigDecimal.ZERO;
