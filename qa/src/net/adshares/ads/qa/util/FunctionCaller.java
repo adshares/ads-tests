@@ -72,6 +72,22 @@ public class FunctionCaller {
     }
 
     /**
+     * Calls change_node_key function.
+     *
+     * @param userData  user data
+     * @param publicKey new public key
+     * @return response: json when request was correct, empty otherwise
+     */
+    public String changeNodeKey(UserData userData, String publicKey) {
+        log.info("changeNodeKey");
+        String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"change_node_key\", \"pkey\":\"%s\"}') | ", publicKey)
+                .concat(ESC_BINARY).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
+        String output = callFunction(command);
+        output = output.replaceFirst(".*}\\s*\\{", "{");
+        return output;
+    }
+
+    /**
      * Calls create_account function.
      *
      * @param userData user data
@@ -96,6 +112,21 @@ public class FunctionCaller {
     public String createAccount(UserData userData, String node) {
         log.info("createAccount in {} node", node);
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"create_account\", \"node\":\"%s\"}') | ", node)
+                .concat(ESC_BINARY).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
+        String output = callFunction(command);
+        output = output.replaceFirst(".*}\\s*\\{", "{");
+        return output;
+    }
+
+    /**
+     * Calls create_node function.
+     *
+     * @param userData user data
+     * @return response: json when request was correct, empty otherwise
+     */
+    public String createNode(UserData userData) {
+        log.info("createNode");
+        String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"create_node\"}') | ")
                 .concat(ESC_BINARY).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
         String output = callFunction(command);
         output = output.replaceFirst(".*}\\s*\\{", "{");

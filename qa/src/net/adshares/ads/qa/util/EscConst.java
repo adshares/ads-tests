@@ -27,6 +27,10 @@ public class EscConst {
      */
     public static final BigDecimal CHANGE_ACCOUNT_KEY_FEE = new BigDecimal("0.00010000000");
     /**
+     * TXS_BKY_FEE change bank key fee
+     */
+    public static final BigDecimal CHANGE_BANK_KEY_FEE = new BigDecimal("0.10000000000");
+    /**
      * TXS_USR_FEE create user fee (local)
      */
     public static final BigDecimal CREATE_ACCOUNT_LOCAL_FEE = new BigDecimal("0.00100000000");
@@ -34,6 +38,10 @@ public class EscConst {
      * TXS_RUS_FEE create user fee (additional fee for remote)
      */
     public static final BigDecimal CREATE_ACCOUNT_REMOTE_FEE = new BigDecimal("0.00100000000");
+    /**
+     * TXS_BNK_FEE create new bank fee
+     */
+    public static final BigDecimal CREATE_BANK_FEE = new BigDecimal("1000.00000000000");
     /**
      * TXS_MIN_FEE minimum transfer fee
      */
