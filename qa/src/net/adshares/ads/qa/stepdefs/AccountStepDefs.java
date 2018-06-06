@@ -183,7 +183,7 @@ public class AccountStepDefs {
     private String requestRemoteAccountCreation(UserData userData, String node) {
         String resp = "";
         int attempt = 0;
-        int attemptMax = 4;
+        int attemptMax = 6;
         while (attempt++ < attemptMax) {
 
             resp = FunctionCaller.getInstance().createAccount(userData, node);

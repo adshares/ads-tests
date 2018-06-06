@@ -19,7 +19,7 @@ public class LogChecker {
     }
 
     public LogChecker(String resp) {
-        this.jsonResp = convertStringToJsonObject(resp);
+        setResp(resp);
     }
 
     /**
@@ -46,7 +46,7 @@ public class LogChecker {
      * @return balance from account object (account.balance)
      */
     public BigDecimal getBalanceFromAccountObject() {
-        return new BigDecimal(jsonResp.getAsJsonObject("account").get("balance").getAsString());
+        return jsonResp.getAsJsonObject("account").get("balance").getAsBigDecimal();
     }
 
     /**
@@ -97,9 +97,9 @@ public class LogChecker {
                         || "broadcast".equals(type) // type_no == 3
                         || ("retrieve_funds".equals(type) && "8".equals(typeNo)) // retrieve_funds call
                         || ("create_node".equals(type) && "7".equals(typeNo))) {// create_node request
-                    amount = new BigDecimal(logEntry.get("amount").getAsString());
+                    amount = logEntry.get("amount").getAsBigDecimal();
                     if ("out".equals(logEntry.get("inout").getAsString())) {
-                        BigDecimal senderFee = new BigDecimal(logEntry.get("sender_fee").getAsString());
+                        BigDecimal senderFee = logEntry.get("sender_fee").getAsBigDecimal();
                         amount = amount.subtract(senderFee);
                     }
 
@@ -107,9 +107,9 @@ public class LogChecker {
                     amount = new BigDecimal(logEntry.get("dividend").getAsString());
 
                 } else if ("node_started".equals(type)) {// type_no == 32768
-                    amount = new BigDecimal(logEntry.getAsJsonObject("account").get("balance").getAsString());
+                    amount = logEntry.getAsJsonObject("account").get("balance").getAsBigDecimal();
                     if (logEntry.has("dividend")) {
-                        BigDecimal dividend = new BigDecimal(logEntry.get("dividend").getAsString());
+                        BigDecimal dividend = logEntry.get("dividend").getAsBigDecimal();
                         amount = amount.add(dividend);
                     }
 
@@ -118,9 +118,9 @@ public class LogChecker {
                         log.info("bank profit for different node");
                         amount = BigDecimal.ZERO;
                     } else {
-                        amount = new BigDecimal(logEntry.get("profit").getAsString());
+                        amount = logEntry.get("profit").getAsBigDecimal();
                         if (logEntry.has("fee")) {
-                            BigDecimal fee = new BigDecimal(logEntry.get("fee").getAsString());
+                            BigDecimal fee = logEntry.get("fee").getAsBigDecimal();
                             amount = amount.subtract(fee);
                         }
                     }
@@ -143,7 +143,15 @@ public class LogChecker {
 
                     // sender_fee is included in amount:
                     // amount = sender_amount - sender_fee
-                    amount = new BigDecimal(logEntry.get("amount").getAsString());
+                    amount = logEntry.get("amount").getAsBigDecimal();
+
+                } else if ("set_account_status".equals(type) || "unset_account_status".equals(type)
+                        || "set_node_status".equals(type) || "unset_node_status".equals(type)) {
+                    if ("out".equals(logEntry.get("inout").getAsString())) {
+                        amount = logEntry.get("sender_fee").getAsBigDecimal().negate();
+                    } else {
+                        amount = BigDecimal.ZERO;
+                    }
 
                 } else {
                     log.warn("Unknown type: " + type + ", no " + typeNo);

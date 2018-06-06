@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.Iterator;
 import java.util.Map;
 
@@ -314,6 +315,61 @@ public class FunctionCaller {
     }
 
     /**
+     * Calls set_account_status function.
+     *
+     * @param userData user data
+     * @param address  address of account, which status should be changed
+     * @param status   integer, bits which are 1, should be set in account status
+     * @return response: json when request was correct, empty otherwise
+     */
+    public String setAccountStatus(UserData userData, String address, int status) {
+        log.info("setAccountStatus {}->{}: status {} (bin)", userData.getAddress(), address, Integer.toBinaryString(status));
+        String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"set_account_status\", \"address\":\"%s\", \"status\":\"%d\"}') | ", address, status)
+                .concat(ESC_BINARY).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
+        String output = callFunction(command);
+        output = output.replaceFirst(".*}\\s*\\{", "{");
+        return output;
+    }
+
+    /**
+     * Calls set_account_status function.
+     *
+     * @param userData user data
+     * @param address  address of account, which status should be changed
+     * @param status   binary String, bits which are 1, should be set in account status
+     * @return response: json when request was correct, empty otherwise
+     */
+    public String setAccountStatus(UserData userData, String address, String status) {
+        log.info("setAccountStatus {}->{}: status {} (bin)", userData.getAddress(), address, status);
+        BigInteger bi = new BigInteger(status, 2);
+        String statusDec = bi.toString(10);
+        String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"set_account_status\", \"address\":\"%s\", \"status\":\"%s\"}') | ", address, statusDec)
+                .concat(ESC_BINARY).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
+        String output = callFunction(command);
+        output = output.replaceFirst(".*}\\s*\\{", "{");
+        return output;
+    }
+
+    /**
+     * Calls unset_account_status function.
+     *
+     * @param userData user data
+     * @param address  address of account, which status should be changed
+     * @param status   binary String, bits which are 1, should be unset in account status
+     * @return response: json when request was correct, empty otherwise
+     */
+    public String unsetAccountStatus(UserData userData, String address, String status) {
+        log.info("unsetAccountStatus {}->{}: status {} (bin)", userData.getAddress(), address, status);
+        BigInteger bi = new BigInteger(status, 2);
+        String statusDec = bi.toString(10);
+        String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"unset_account_status\", \"address\":\"%s\", \"status\":\"%s\"}') | ", address, statusDec)
+                .concat(ESC_BINARY).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
+        String output = callFunction(command);
+        output = output.replaceFirst(".*}\\s*\\{", "{");
+        return output;
+    }
+
+    /**
      * Calls command in sh shell
      *
      * @param cmd command
@@ -398,9 +454,9 @@ public class FunctionCaller {
      */
     public BigDecimal getUserAccountBalance(UserData userData) {
         JsonObject o = Utils.convertStringToJsonObject(getMe(userData));
-        String balance = o.getAsJsonObject("account").get("balance").getAsString();
-        log.info("user {} balance: {}", userData.getAddress(), balance);
-        return new BigDecimal(balance);
+        BigDecimal balance = o.getAsJsonObject("account").get("balance").getAsBigDecimal();
+        log.info("user {} balance: {}", userData.getAddress(), balance.toPlainString());
+        return balance;
     }
 
     /**

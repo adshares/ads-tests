@@ -92,5 +92,13 @@ public class EscConst {
         public static final String CREATE_ACCOUNT_BAD_TIMING = "Bad timing for remote account request, try again later.";
         public static final String GET_GLOBAL_USER_FAILED = "Failed to get global user info";
         public static final String GET_BLOCK_INFO_FAILED = "Block info is unavailable";
+        public static final String MATCH_SECRET_KEY_NOT_FOUND = "Matching secret key not found";
+    }
+
+    /**
+     * Result messages
+     */
+    public class Result {
+        public static final String NODE_KEY_CHANGED = "Node key changed";
     }
 }
