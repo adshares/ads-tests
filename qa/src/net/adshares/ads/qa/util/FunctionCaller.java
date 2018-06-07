@@ -135,6 +135,19 @@ public class FunctionCaller {
     }
 
     /**
+     * Calls get_account function.
+     *
+     * @param userData user data
+     * @return response: json when request was correct, empty otherwise
+     */
+    public String getAccount(UserData userData, String address) {
+        log.info("getAccount {}", address);
+        String command = String.format("echo '{\"run\":\"get_account\", \"address\":\"%s\"}' | ", address)
+                .concat(ESC_BINARY).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
+        return callFunction(command);
+    }
+
+    /**
      * Calls get_block function.
      *
      * @param userData user data
@@ -344,6 +357,23 @@ public class FunctionCaller {
         BigInteger bi = new BigInteger(status, 2);
         String statusDec = bi.toString(10);
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"set_account_status\", \"address\":\"%s\", \"status\":\"%s\"}') | ", address, statusDec)
+                .concat(ESC_BINARY).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
+        String output = callFunction(command);
+        output = output.replaceFirst(".*}\\s*\\{", "{");
+        return output;
+    }
+
+    /**
+     * Calls unset_account_status function.
+     *
+     * @param userData user data
+     * @param address  address of account, which status should be changed
+     * @param status   integer, bits which are 1, should be unset in account status
+     * @return response: json when request was correct, empty otherwise
+     */
+    public String unsetAccountStatus(UserData userData, String address, int status) {
+        log.info("unsetAccountStatus {}->{}: status {} (bin)", userData.getAddress(), address, Integer.toBinaryString(status));
+        String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"unset_account_status\", \"address\":\"%s\", \"status\":\"%d\"}') | ", address, status)
                 .concat(ESC_BINARY).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
         String output = callFunction(command);
         output = output.replaceFirst(".*}\\s*\\{", "{");

@@ -82,6 +82,22 @@ public class EscConst {
      * BANK_MIN_UMASS minimum bank balance after outgoing transfer
      */
     public static final BigDecimal BANK_MIN_UMASS = new BigDecimal("1.00000000000");
+    /**
+     * TXS_SUS_FEE set bank status bits fee
+     */
+    public static final BigDecimal SET_BANK_STATUS_FEE = new BigDecimal("0.00010000000");
+    /**
+     * TXS_SUS_FEE set user status bits fee
+     */
+    public static final BigDecimal SET_USER_STATUS_FEE = new BigDecimal("0.00010000000");
+    /**
+     * TXS_UUS_FEE unset bank status bits fee
+     */
+    public static final BigDecimal UNSET_BANK_STATUS_FEE = new BigDecimal("0.00010000000");
+    /**
+     * TXS_UUS_FEE unset user status bits fee
+     */
+    public static final BigDecimal UNSET_USER_STATUS_FEE = new BigDecimal("0.00010000000");
 
     /**
      * Error messages
@@ -93,6 +109,8 @@ public class EscConst {
         public static final String GET_GLOBAL_USER_FAILED = "Failed to get global user info";
         public static final String GET_BLOCK_INFO_FAILED = "Block info is unavailable";
         public static final String MATCH_SECRET_KEY_NOT_FOUND = "Matching secret key not found";
+        public static final String CHANGE_STATUS_FAILED = "Not authorized to change bits";
+        public static final String CHANGE_STATUS_REMOTE_FAILED = "Changing account status on remote node not allowed";
     }
 
     /**
