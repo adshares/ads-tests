@@ -98,7 +98,7 @@ public class LogChecker {
                         || ("retrieve_funds".equals(type) && "8".equals(typeNo)) // retrieve_funds call
                         || ("create_node".equals(type) && "7".equals(typeNo))) {// create_node request
                     amount = logEntry.get("amount").getAsBigDecimal();
-                    if ("out".equals(logEntry.get("inout").getAsString())) {
+                    if (logEntry.has("inout") && "out".equals(logEntry.get("inout").getAsString())) {
                         BigDecimal senderFee = logEntry.get("sender_fee").getAsBigDecimal();
                         amount = amount.subtract(senderFee);
                     }
