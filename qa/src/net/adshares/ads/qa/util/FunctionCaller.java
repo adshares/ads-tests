@@ -364,6 +364,23 @@ public class FunctionCaller {
     }
 
     /**
+     * Calls set_node_status function.
+     *
+     * @param userData user data
+     * @param nodeId   id of node, which status should be changed
+     * @param status   integer, bits which are 1, should be set in account status
+     * @return response: json when request was correct, empty otherwise
+     */
+    public String setNodeStatus(UserData userData, String nodeId, int status) {
+        log.info("setNodeStatus {}->{}: status {} (bin)", userData.getAddress(), nodeId, Integer.toBinaryString(status));
+        String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"set_node_status\", \"node\":\"%s\", \"status\":\"%d\"}') | ", nodeId, status)
+                .concat(ESC_BINARY).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
+        String output = callFunction(command);
+        output = output.replaceFirst(".*}\\s*\\{", "{");
+        return output;
+    }
+
+    /**
      * Calls unset_account_status function.
      *
      * @param userData user data
@@ -393,6 +410,23 @@ public class FunctionCaller {
         BigInteger bi = new BigInteger(status, 2);
         String statusDec = bi.toString(10);
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"unset_account_status\", \"address\":\"%s\", \"status\":\"%s\"}') | ", address, statusDec)
+                .concat(ESC_BINARY).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
+        String output = callFunction(command);
+        output = output.replaceFirst(".*}\\s*\\{", "{");
+        return output;
+    }
+
+    /**
+     * Calls unset_node_status function.
+     *
+     * @param userData user data
+     * @param nodeId   id of node, which status should be changed
+     * @param status   integer, bits which are 1, should be set in account status
+     * @return response: json when request was correct, empty otherwise
+     */
+    public String unsetNodeStatus(UserData userData, String nodeId, int status) {
+        log.info("unsetNodeStatus {}->{}: status {} (bin)", userData.getAddress(), nodeId, Integer.toBinaryString(status));
+        String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"unset_node_status\", \"node\":\"%s\", \"status\":\"%d\"}') | ", nodeId, status)
                 .concat(ESC_BINARY).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
         String output = callFunction(command);
         output = output.replaceFirst(".*}\\s*\\{", "{");

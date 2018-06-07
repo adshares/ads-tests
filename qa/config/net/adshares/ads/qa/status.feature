@@ -14,5 +14,16 @@ Feature: Account features
       |regular|local |2-4           |
       |regular|remote|              |
 
+  Scenario Outline: Set node status <type_a> -> <type_b>
+    Given <type_a> account user, who wants to change <type_b> node status
+    When user changes node status
+    Then only <available_bits> could be changed
+    Examples:
+      |type_a |type_b|available_bits|
+      |main   |own   |4-24          |
+      |main   |remote|17-24         |
+      |regular|own   |              |
+      |regular|remote|              |
+
   Scenario: Check log
     Given user log
