@@ -17,10 +17,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.xml.bind.DatatypeConverter;
 import java.math.BigDecimal;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Random;
-import java.util.Set;
+import java.util.*;
 
 public class BroadcastStepDefs {
 
@@ -45,7 +42,6 @@ public class BroadcastStepDefs {
     @When("^one of them sends valid broadcast message which size is (\\d+) byte\\(s\\)$")
     public void one_of_them_sends_broadcast_message(int messageSize) {
         UserData u = userDataList.get(0);
-        FunctionCaller fc = FunctionCaller.getInstance();
 
         BroadcastMessageData bmd = sendBroadcastMessageData(u, messageSize);
         bmdSet = new HashSet<>();
@@ -61,7 +57,6 @@ public class BroadcastStepDefs {
 
     @When("^one of them sends many broadcast messages$")
     public void one_of_them_send_many_broadcast_messages() {
-        FunctionCaller fc = FunctionCaller.getInstance();
         UserData u = userDataList.get(0);
 
         int messageSize = 1;
@@ -119,10 +114,23 @@ public class BroadcastStepDefs {
 
         for (UserData u : userDataList) {
 
-            for (BroadcastMessageData bmd : bmdSet) {
+            /*
+            Temporary list of broadcast messages is created for each user.
+
+            First message is taken from this list and is looked up in get_broadcast response.
+            During search all received messages are compared with list.
+            If there is match, message is removed from list.
+
+            This algorithm reduces get_broadcast calls.
+             */
+            List<BroadcastMessageData> userBmdList = new LinkedList<>(bmdSet);
+            do {
+                BroadcastMessageData bmd = userBmdList.get(0);
+
                 String message = bmd.getMessage();
-                boolean isMessageReceived = false;
                 String blockTime = bmd.getBlockTime();
+
+                boolean isMessageReceived = false;
                 int nextBlockCheckAttempt = 0;
                 int nextBlockCheckAttemptMax = 2;
                 String resp;
@@ -153,22 +161,43 @@ public class BroadcastStepDefs {
                         } else {
                             Assert.fail("Unexpected error message.");
                         }
-                    }
-                } while (isError);
+                    } else {
+                        JsonArray broadcastArr = o.getAsJsonArray("broadcast");
+                        int size = broadcastArr.size();
+                        log.info("size {}", size);
+                        for (int i = 0; i < size; i++) {
+                            String receivedMessage = broadcastArr.get(i).getAsJsonObject().get("message").getAsString();
 
-                JsonArray broadcastArr = o.getAsJsonArray("broadcast");
-                int size = broadcastArr.size();
-                log.info("size {}", size);
-                for (int i = 0; i < size; i++) {
-                    String msgRec = broadcastArr.get(i).getAsJsonObject().get("message").getAsString();
-                    if (message.equals(msgRec)) {
-                        log.info("received message");
-                        isMessageReceived = true;
-                        break;
+                            Iterator<BroadcastMessageData> it = userBmdList.iterator();
+                            while (it.hasNext()) {
+                                String otherMessage = it.next().getMessage();
+                                if (otherMessage.equals(receivedMessage)) {
+                                    log.info("got message: {}", receivedMessage);
+                                    it.remove();
+
+                                    if (message.equals(receivedMessage)) {
+                                        log.info("received message");
+                                        isMessageReceived = true;
+                                    }
+                                    break;
+                                }
+                            }
+
+                        }
+
+                        if (!isMessageReceived) {
+                            // broadcast messages can be split into different block,
+                            // therefore next block must be checked
+                            Assert.assertTrue("Broadcast message wasn't found in further blocks.",
+                                    nextBlockCheckAttempt < nextBlockCheckAttemptMax);
+                            log.info("try next block");
+                            blockTime = EscUtils.getNextBlock(blockTime);
+                            nextBlockCheckAttempt++;
+                        }
                     }
-                }
-                Assert.assertTrue("Didn't receive message.", isMessageReceived);
-            }
+                } while (!isMessageReceived);
+
+            } while (userBmdList.size() > 0);
 
         }
     }
