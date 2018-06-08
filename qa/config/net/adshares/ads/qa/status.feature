@@ -25,5 +25,15 @@ Feature: Account features
       |regular|own   |              |
       |regular|remote|              |
 
+  Scenario: Set out of range account status
+    Given main account user, who wants to change own status
+    When user tries to set out of range status
+    Then change status transaction is rejected
+
+  Scenario: Set out of range node status
+    Given main account user, who wants to change own node status
+    When user tries to set out of range node status
+    Then change status transaction is rejected
+
   Scenario: Check log
     Given user log

@@ -34,9 +34,11 @@ public class StatusStepDefs {
      */
     private String address;
     /**
-     *
+     * Set of bits, which was successfully changed (set/reset)
      */
     private Set<Integer> successfullyChangedBitsSet;
+
+    private boolean isTransactionAccepted;
 
     @Given("^(main|regular) account user, who wants to change (own|local|remote) status$")
     public void user_who_wants_to_change_status(String accountType, String otherAccountType) {
@@ -327,7 +329,7 @@ public class StatusStepDefs {
                         EscConst.Error.GET_BLOCK_INFO_FAILED, errorDesc);
             } else {
                 JsonArray arr = o.getAsJsonObject("block").getAsJsonArray("nodes");
-                for (JsonElement je :                arr) {
+                for (JsonElement je : arr) {
                     JsonObject nodeEntry = je.getAsJsonObject();
                     if (nodeId.equals(nodeEntry.get("id").getAsString())) {
                         status = nodeEntry.get("status").getAsInt();
@@ -363,4 +365,57 @@ public class StatusStepDefs {
         }
         return sb.toString();
     }
+
+    @When("^user tries to set out of range status$")
+    public void user_tries_set_oor_acc_status() {
+        StringBuilder sb = new StringBuilder("1");
+        for (int i = 0; i < 15; i++) {
+            sb.append('0');
+        }
+
+        while (sb.length() < 65) {
+            sb.append('0');
+            String outOfRangeStatusBin = sb.toString();
+            isTransactionAccepted = EscUtils.isTransactionAcceptedByNode(
+                    FunctionCaller.getInstance().setAccountStatus(userData, address, outOfRangeStatusBin));
+            if (isTransactionAccepted) {
+                break;
+            }
+            isTransactionAccepted = EscUtils.isTransactionAcceptedByNode(
+                    FunctionCaller.getInstance().unsetAccountStatus(userData, address, outOfRangeStatusBin));
+            if (isTransactionAccepted) {
+                break;
+            }
+        }
+
+    }
+
+    @When("^user tries to set out of range node status$")
+    public void user_tries_set_oor_node_status() {
+        StringBuilder sb = new StringBuilder("1");
+        for (int i = 0; i < 31; i++) {
+            sb.append('0');
+        }
+
+        while (sb.length() < 65) {
+            sb.append('0');
+            String outOfRangeStatusBin = sb.toString();
+            isTransactionAccepted = EscUtils.isTransactionAcceptedByNode(
+                    FunctionCaller.getInstance().setNodeStatus(userData, address, outOfRangeStatusBin));
+            if (isTransactionAccepted) {
+                break;
+            }
+            isTransactionAccepted = EscUtils.isTransactionAcceptedByNode(
+                    FunctionCaller.getInstance().unsetNodeStatus(userData, address, outOfRangeStatusBin));
+            if (isTransactionAccepted) {
+                break;
+            }
+        }
+    }
+
+    @Then("^change status transaction is rejected$")
+    public void changeStatusTransactionIsRejected() {
+        Assert.assertFalse("Change status transaction was accepted.", isTransactionAccepted);
+    }
+
 }
