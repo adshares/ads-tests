@@ -88,7 +88,8 @@ public class BroadcastStepDefs {
         BigDecimal feeExpected = getBroadcastFee(message);
 
         String resp = fc.broadcast(userData, message);
-        Assert.assertTrue(EscUtils.isTransactionAcceptedByNode(resp));
+        Assert.assertTrue("Broadcast transaction was not accepted by node.",
+                EscUtils.isTransactionAcceptedByNode(resp));
 
         JsonObject o = Utils.convertStringToJsonObject(resp);
         BigDecimal fee = o.getAsJsonObject("tx").get("fee").getAsBigDecimal();
@@ -103,7 +104,7 @@ public class BroadcastStepDefs {
         log.info("diff:        {}", feeExpected.subtract(fee).toPlainString());
 
         Assert.assertEquals("Deduct is not equal to fee.", deduct, fee);
-        Assert.assertEquals(feeExpected, fee);
+        Assert.assertEquals("Unexpected fee for broadcast message.", feeExpected, fee);
 
         return new BroadcastMessageData(message, blockTime);
     }
@@ -138,17 +139,19 @@ public class BroadcastStepDefs {
                         log.warn("get_broadcast error: {}", err);
 
                         if (EscConst.Error.BROADCAST_NOT_READY.equals(err)) {
-                            Assert.assertTrue(delay < delayMax);
+                            Assert.assertTrue("Broadcast wasn't prepared in expected time.",
+                                    delay < delayMax);
                             log.info("wait another block");
                             waitForBlock();
                             delay++;
                         } else if (EscConst.Error.BROADCAST_NO_FILE_TO_SEND.equals(err)) {
-                            Assert.assertTrue(nextBlockCheckAttempt < nextBlockCheckAttemptMax);
+                            Assert.assertTrue("Broadcast message wasn't found in expected blocks.",
+                                    nextBlockCheckAttempt < nextBlockCheckAttemptMax);
                             log.info("try check next block");
                             blockTime = EscUtils.getNextBlock(blockTime);
                             nextBlockCheckAttempt++;
                         } else {
-                            Assert.fail("No message");
+                            Assert.fail("Unexpected error message.");
                         }
                     }
                 } while (isError);
@@ -186,7 +189,7 @@ public class BroadcastStepDefs {
             String err = o.get("error").getAsString();
             log.info("Message was rejected with error: {}", err);
         } else {
-            Assert.assertFalse(EscUtils.isTransactionAcceptedByNode(lastResp));
+            Assert.assertFalse("Message was accepted.", EscUtils.isTransactionAcceptedByNode(lastResp));
             log.info("Message was rejected: not accepted by node");
         }
     }

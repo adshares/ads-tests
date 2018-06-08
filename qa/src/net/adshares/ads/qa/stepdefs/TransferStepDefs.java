@@ -351,30 +351,30 @@ public class TransferStepDefs {
         FunctionCaller fc = FunctionCaller.getInstance();
         for (TransferUser receiver : txReceivers) {
             BigDecimal receiverExpBalance = receiver.getExpBalance();
-            Assert.assertNotEquals(receiverExpBalance, receiver.getStartBalance());
-            Assert.assertEquals(receiverExpBalance, fc.getUserAccountBalance(receiver));
+            Assert.assertNotEquals("Receiver balance unchanged.", receiverExpBalance, receiver.getStartBalance());
+            Assert.assertEquals("Receiver balance unexpected.", receiverExpBalance, fc.getUserAccountBalance(receiver));
         }
     }
 
     @Then("^sender balance is decreased by sent amount and fee$")
     public void check_balance_chg_sender() {
         BigDecimal senderExpBalance = txSender.getExpBalance();
-        Assert.assertNotEquals(senderExpBalance, txSender.getStartBalance());
+        Assert.assertNotEquals("Sender balance unchanged.", senderExpBalance, txSender.getStartBalance());
         FunctionCaller fc = FunctionCaller.getInstance();
-        Assert.assertEquals(senderExpBalance, fc.getUserAccountBalance(txSender));
+        Assert.assertEquals("Sender balance unexpected.", senderExpBalance, fc.getUserAccountBalance(txSender));
     }
 
     @Then("^sender balance is as expected$")
     public void check_balance_exp_sender() {
         FunctionCaller fc = FunctionCaller.getInstance();
-        Assert.assertEquals(txSender.getExpBalance(), fc.getUserAccountBalance(txSender));
+        Assert.assertEquals("Sender balance unexpected.", txSender.getExpBalance(), fc.getUserAccountBalance(txSender));
     }
 
     @Then("^receiver balance is as expected$")
     public void check_balance_exp_receiver() {
         FunctionCaller fc = FunctionCaller.getInstance();
         for (TransferUser receiver : txReceivers) {
-            Assert.assertEquals(receiver.getExpBalance(), fc.getUserAccountBalance(receiver));
+            Assert.assertEquals("Receiver balance unexpected.", receiver.getExpBalance(), fc.getUserAccountBalance(receiver));
         }
     }
 
@@ -389,7 +389,7 @@ public class TransferStepDefs {
 
             log.debug(user.getAddress());
             lc.setResp(userLog);
-            Assert.assertTrue(lc.isBalanceFromObjectEqualToArray());
+            Assert.assertTrue("Balance is different than sum of logged events", lc.isBalanceFromObjectEqualToArray());
             log.debug("success");
         }
     }

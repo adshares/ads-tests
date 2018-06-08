@@ -283,7 +283,8 @@ public class StatusStepDefs {
         log.info("expected set: {}", formatSetLog(availableBitsSet));
         log.info("  result set: {}", formatSetLog(successfullyChangedBitsSet));
 
-        Assert.assertEquals(availableBitsSet, successfullyChangedBitsSet);
+        Assert.assertEquals("Changed bit set is different than expected.",
+                availableBitsSet, successfullyChangedBitsSet);
     }
 
     private String convertIntToBinaryString16b(int i) {

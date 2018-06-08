@@ -107,7 +107,7 @@ public class UserDataProvider {
             log.error("getUserDataList(count=" + count + ", singleNode=" + singleNode + ")");
             log.error("Not enough users. Needed {}, but only {} available.", count, userData.size());
         }
-        Assert.assertTrue(enoughUsers);
+        Assert.assertTrue("Not enough users.", enoughUsers);
 
         return userData;
     }
@@ -140,7 +140,7 @@ public class UserDataProvider {
             log.error("getUserDataFromDifferentNodes(count=" + count + ")");
             log.error("Not enough users. Needed {}, but only {} available.", count, userData.size());
         }
-        Assert.assertTrue(enoughUsers);
+        Assert.assertTrue("Not enough users.",enoughUsers);
 
         return userData;
     }

@@ -128,7 +128,8 @@ public class RetrieveFundsStepDefs {
         } while (BigDecimal.ZERO.compareTo(fc.getUserAccountBalance(inactiveUser)) != 0);
         log.info("Account was empty after {} block(s)", loopCnt);
 
-        Assert.assertTrue(new LogChecker(fc.getLog(inactiveUser.getUserData())).isBalanceFromObjectEqualToArray());
+        Assert.assertTrue("Inactive account balance is different than sum of logged events",
+                new LogChecker(fc.getLog(inactiveUser.getUserData())).isBalanceFromObjectEqualToArray());
 
     }
 
@@ -165,7 +166,7 @@ public class RetrieveFundsStepDefs {
                 case 0:
                 case 2:
                     senderFee = o.get("sender_fee").getAsBigDecimal();
-                    Assert.assertEquals(EscConst.RETRIEVE_REQUEST_FEE, senderFee);
+                    Assert.assertEquals("Invalid fee for retrieve_funds.", EscConst.RETRIEVE_REQUEST_FEE, senderFee);
                     break;
                 case 1:
                     // 1st call confirm
@@ -182,7 +183,7 @@ public class RetrieveFundsStepDefs {
                     log.info("senderFee:          {}", senderFee.toPlainString());
                     log.info("senderFeeExpected2: {}", senderFeeExpected.toPlainString());
                     log.info("diff:               {}", senderFee.subtract(senderFeeExpected).toPlainString());
-                    Assert.assertEquals(senderFeeExpected, senderFee);
+                    Assert.assertEquals("Unexpected fee for retrieve funds.", senderFeeExpected, senderFee);
                     break;
             }
         }
@@ -195,6 +196,7 @@ public class RetrieveFundsStepDefs {
         log.info("log Other Events:        {}", balanceOtherEvents);
         log.info("retriever End Balance:   {}", balance);
 
-        Assert.assertEquals(startBalance.add(balanceRetrieveEvents).add(balanceOtherEvents), balance);
+        Assert.assertEquals("Unexpected balance after retrieve funds.",
+                startBalance.add(balanceRetrieveEvents).add(balanceOtherEvents), balance);
     }
 }

@@ -70,8 +70,8 @@ public class AccountStepDefs {
     public void he_cannot_use_old_key() {
         String resp = FunctionCaller.getInstance().getMe(userData);
         JsonObject o = Utils.convertStringToJsonObject(resp);
-        Assert.assertTrue(o.has("error")
-                && "Wrong signature".equals(o.get("error").getAsString()));
+        Assert.assertTrue("Transaction with old key wasn't rejected with correct error description.",
+                o.has("error") && "Wrong signature".equals(o.get("error").getAsString()));
     }
 
     @Then("^transaction can be authorised with new key$")
@@ -80,7 +80,7 @@ public class AccountStepDefs {
         String resp = FunctionCaller.getInstance().getMe(userData);
         JsonObject o = Utils.convertStringToJsonObject(resp);
 
-        Assert.assertFalse(o.has("error"));
+        Assert.assertFalse("Transaction with new key wasn't accepted.", o.has("error"));
         BigDecimal balance = o.getAsJsonObject("account").get("balance").getAsBigDecimal();
         log.info("Balance {}", balance.toPlainString());
     }
