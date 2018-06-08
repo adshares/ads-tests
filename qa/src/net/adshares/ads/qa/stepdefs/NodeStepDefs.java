@@ -51,7 +51,8 @@ public class NodeStepDefs {
         BigDecimal deduct = o.getAsJsonObject("tx").get("deduct").getAsBigDecimal();
         Assert.assertEquals("Invalid fee computed", 0, EscConst.CREATE_BANK_FEE.compareTo(fee));
         // expected deduct is equal to expected fee
-        Assert.assertEquals("Invalid deduct computed", 0, EscConst.CREATE_BANK_FEE.compareTo(deduct));
+        BigDecimal expectedDeduct = EscConst.CREATE_BANK_FEE.add(EscConst.BANK_MIN_UMASS);
+        Assert.assertEquals("Invalid deduct computed", 0, expectedDeduct.compareTo(deduct));
 
 
         int nodeId = getCreatedNodeIdFromLog();
