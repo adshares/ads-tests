@@ -146,7 +146,8 @@ public class LogChecker {
                     amount = logEntry.get("amount").getAsBigDecimal();
 
                 } else if ("set_account_status".equals(type) || "unset_account_status".equals(type)
-                        || "set_node_status".equals(type) || "unset_node_status".equals(type)) {
+                        || "set_node_status".equals(type) || "unset_node_status".equals(type)
+                        || "change_node_key".equals(type)) {// type_no == 10
                     if ("out".equals(logEntry.get("inout").getAsString())) {
                         amount = logEntry.get("sender_fee").getAsBigDecimal().negate();
                     } else {
