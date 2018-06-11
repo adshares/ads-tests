@@ -177,7 +177,7 @@ public class AccountStepDefs {
      * Requests account creation few times with delay.
      *
      * @param userData user data
-     * @param node node in which account should be created
+     * @param node     node in which account should be created
      * @return response: json when request was correct, empty otherwise
      */
     private String requestRemoteAccountCreation(UserData userData, String node) {
@@ -225,7 +225,7 @@ public class AccountStepDefs {
             JsonArray arr = lc.getFilteredLogArray(lf);
             if (arr.size() > 0) {
                 JsonObject accCrObj = arr.get(arr.size() - 1).getAsJsonObject();
-                Assert.assertEquals("Request was not accepted.","accepted", accCrObj.get("request").getAsString());
+                Assert.assertEquals("Request was not accepted.", "accepted", accCrObj.get("request").getAsString());
                 address = accCrObj.get("address").getAsString();
                 break;
             }
@@ -237,36 +237,14 @@ public class AccountStepDefs {
     }
 
     private String getDifferentNodeId(UserData userData, String nodeId) {
-        // Sometimes account is created with delay,
-        // therefore there are next attempts.
-        int attempt = 0;
-        int attemptMax = 4;
-        while (attempt++ < attemptMax) {
-            String resp = FunctionCaller.getInstance().getBlock(userData);
-            JsonObject o = Utils.convertStringToJsonObject(resp);
-            if (o.has("error")) {
-                String errorDesc = o.get("error").getAsString();
-                log.info("Error occurred: {}", errorDesc);
-                Assert.assertEquals("Unexpected error after account creation.",
-                        EscConst.Error.GET_BLOCK_INFO_FAILED, errorDesc);
-            } else {
-                JsonArray arr = o.getAsJsonObject("block").getAsJsonArray("nodes");
-                for (JsonElement je : arr) {
-                    String tmpNodeId = je.getAsJsonObject().get("id").getAsString();
-                    if (!"0000".equals(tmpNodeId) && !nodeId.equals(tmpNodeId)) {
-                        return tmpNodeId;
-                    }
-                }
-                return null;
-            }
+        String resp = FunctionCaller.getInstance().getBlock(userData);
+        JsonObject o = Utils.convertStringToJsonObject(resp);
 
-            Assert.assertTrue("Cannot get block info after delay", attempt < attemptMax);
-            // block info is not available for short time after block change,
-            // therefore there is 3 s delay - it cannot be "wait for next block"
-            try {
-                Thread.sleep(3000L);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+        JsonArray arr = o.getAsJsonObject("block").getAsJsonArray("nodes");
+        for (JsonElement je : arr) {
+            String tmpNodeId = je.getAsJsonObject().get("id").getAsString();
+            if (!"0000".equals(tmpNodeId) && !nodeId.equals(tmpNodeId)) {
+                return tmpNodeId;
             }
         }
         return null;

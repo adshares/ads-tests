@@ -173,12 +173,50 @@ public class FunctionCaller {
     }
 
     /**
-     * Calls get_block function.
+     * Wrapper for get_block function. Block information is not available for short time after block change,
+     * therefore this function calls get_block few times.
      *
      * @param userData user data
      * @return response: json when request was correct, empty otherwise
      */
     public String getBlock(UserData userData) {
+        String resp = null;
+
+        int attempt = 0;
+        int attemptMax = 4;
+        while (attempt++ < attemptMax) {
+            resp = FunctionCaller.getInstance().getBlockSingleCall(userData);
+            JsonObject o = Utils.convertStringToJsonObject(resp);
+            if (o.has("error")) {
+                String errorDesc = o.get("error").getAsString();
+                log.info("Error occurred: {}", errorDesc);
+                Assert.assertEquals("Unexpected error after account creation.",
+                        EscConst.Error.GET_BLOCK_INFO_FAILED, errorDesc);
+            } else {
+                return resp;
+            }
+
+            Assert.assertTrue("Cannot get block info after delay", attempt < attemptMax);
+            // block info is not available for short time after block change,
+            // therefore there is 3 s delay - it cannot be "wait for next block"
+            try {
+                Thread.sleep(3000L);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+
+        Assert.assertNotEquals("Cannot get response", null, resp);
+        return resp;
+    }
+
+    /**
+     * Calls get_block function.
+     *
+     * @param userData user data
+     * @return response: json when request was correct, empty otherwise
+     */
+    private String getBlockSingleCall(UserData userData) {
         log.info("getBlock");
         String command = ("echo '{\"run\":\"get_block\"}' | ")
                 .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
@@ -636,7 +674,7 @@ public class FunctionCaller {
             resp = callFunction(sysCmdPrefix.concat("/docker/wait-up.php"));
             Assert.assertFalse("Timeout during docker start",
                     resp.contains("timeout") || resp.contains("failed")
-                    || (System.currentTimeMillis() - startTime > COMPILATION_TIMEOUT));
+                            || (System.currentTimeMillis() - startTime > COMPILATION_TIMEOUT));
             Assert.assertNotEquals("No response from docker", "", resp);
         } while (!resp.contains("started"));
     }

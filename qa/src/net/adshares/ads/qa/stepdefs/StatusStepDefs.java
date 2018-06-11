@@ -17,9 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 public class StatusStepDefs {
 
@@ -199,7 +197,7 @@ public class StatusStepDefs {
         successfullyChangedBitsSet = new HashSet<>();
 
         int status;
-        int lastStatus = getNodeStatus();
+        int lastStatus = getNodeStatus(userData, address);
 
         final int maxChangeCount = 2;
         String resp;
@@ -235,7 +233,7 @@ public class StatusStepDefs {
                 }
 
                 EscUtils.waitForNextBlock();
-                status = getNodeStatus();
+                status = getNodeStatus(userData, address);
                 log.info("lastStatus: {}", convertIntToBinaryString32b(lastStatus));
                 log.info("         i: {}", convertIntToBinaryString32b(i));
                 log.info("    status: {}", convertIntToBinaryString32b(status));
@@ -308,43 +306,23 @@ public class StatusStepDefs {
     }
 
     /**
-     * Returns node status from get_account function response.
+     * Gets node status from get_block function response.
      *
+     * @param userData user data
+     * @param nodeId   node id in hex format - as in account address
      * @return node status
      */
-    private int getNodeStatus() {
-        // adress is node id in hex format - as in account address
-        String nodeId = address;
+    private int getNodeStatus(UserData userData, String nodeId) {
         int status = -1;
 
-        int attempt = 0;
-        int attemptMax = 4;
-        while (attempt++ < attemptMax) {
-            String resp = FunctionCaller.getInstance().getBlock(userData);
-            JsonObject o = Utils.convertStringToJsonObject(resp);
-            if (o.has("error")) {
-                String errorDesc = o.get("error").getAsString();
-                log.info("Error occurred: {}", errorDesc);
-                Assert.assertEquals("Unexpected error after account creation.",
-                        EscConst.Error.GET_BLOCK_INFO_FAILED, errorDesc);
-            } else {
-                JsonArray arr = o.getAsJsonObject("block").getAsJsonArray("nodes");
-                for (JsonElement je : arr) {
-                    JsonObject nodeEntry = je.getAsJsonObject();
-                    if (nodeId.equals(nodeEntry.get("id").getAsString())) {
-                        status = nodeEntry.get("status").getAsInt();
-                        return status;
-                    }
-                }
-            }
-
-            Assert.assertTrue("Cannot get block info after delay", attempt < attemptMax);
-            // block info is not available for short time after block change,
-            // therefore there is 3 s delay - it cannot be "wait for next block"
-            try {
-                Thread.sleep(3000L);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+        String resp = FunctionCaller.getInstance().getBlock(userData);
+        JsonObject o = Utils.convertStringToJsonObject(resp);
+        JsonArray arr = o.getAsJsonObject("block").getAsJsonArray("nodes");
+        for (JsonElement je : arr) {
+            JsonObject nodeEntry = je.getAsJsonObject();
+            if (nodeId.equals(nodeEntry.get("id").getAsString())) {
+                status = nodeEntry.get("status").getAsInt();
+                return status;
             }
         }
 
