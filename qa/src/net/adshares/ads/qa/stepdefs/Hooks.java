@@ -14,6 +14,11 @@ import java.io.IOException;
  */
 public class Hooks {
 
+    /**
+     * Timeout for docker start in milliseconds
+     */
+    private static final int DOCKER_START_TIMEOUT = 300000;// 300000 ms = 5 min.
+
     private final Logger log = LoggerFactory.getLogger(getClass());
     private static int testCount = 0;
 
@@ -37,9 +42,11 @@ public class Hooks {
             fc.callFunction("docker exec -i adshares_ads_1 mkdir /tmp/esc");
             // waits for esc compilation
             String resp;
+            long startTime = System.currentTimeMillis();
             do {
                 resp = fc.callFunction("docker exec -i adshares_ads_1 /docker/wait-up.php");
-                Assert.assertFalse("Timeout during docker start", resp.contains("timeout"));
+                Assert.assertFalse("Timeout during docker start", resp.contains("timeout")
+                        || System.currentTimeMillis() - startTime > DOCKER_START_TIMEOUT);
                 Assert.assertNotEquals("No response from docker", "", resp);
             } while(!resp.contains("started"));
         }
