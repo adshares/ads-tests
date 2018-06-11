@@ -15,11 +15,8 @@ import java.io.IOException;
 public class Hooks {
 
     /**
-     * Timeout for docker start in milliseconds
+     * Number of started tests
      */
-    private static final int DOCKER_START_TIMEOUT = 300000;// 300000 ms = 5 min.
-
-    private final Logger log = LoggerFactory.getLogger(getClass());
     private static int testCount = 0;
 
     @Before
@@ -27,28 +24,10 @@ public class Hooks {
         if (testCount == 0) {
             // this code will run only once before all tests
 
-            // deletes esc cache
-            try {
-                Utils.deleteDirectory("log");
-                Utils.deleteDirectory("out");
-            } catch (IOException e) {
-                log.warn("Unable to delete ESC cache");
-            }
-
-
             FunctionCaller fc = FunctionCaller.getInstance();
-            // deletes esc cache in docker
-            fc.callFunction("docker exec -i adshares_ads_1 rm -rf /tmp/esc");
-            fc.callFunction("docker exec -i adshares_ads_1 mkdir /tmp/esc");
-            // waits for esc compilation
-            String resp;
-            long startTime = System.currentTimeMillis();
-            do {
-                resp = fc.callFunction("docker exec -i adshares_ads_1 /docker/wait-up.php");
-                Assert.assertFalse("Timeout during docker start", resp.contains("timeout")
-                        || System.currentTimeMillis() - startTime > DOCKER_START_TIMEOUT);
-                Assert.assertNotEquals("No response from docker", "", resp);
-            } while(!resp.contains("started"));
+            fc.deleteCache();
+            fc.waitForCompilation();
+
         }
         testCount++;
     }

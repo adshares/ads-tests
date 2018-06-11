@@ -139,11 +139,7 @@ public class NodeStepDefs {
 
         // add private key to key.txt file, if it is not present
         int nodeId = Integer.valueOf(userData.getAddress().substring(0, 4), 16);
-        String keyFileName = String.format("/ads-data/node%d/key/key.txt", nodeId);
-        String keyFileContent = fc.callFunction("docker exec -i adshares_ads_1 cat " + keyFileName);
-        if (!keyFileContent.contains(PRIVATE_KEY)) {
-            fc.callFunction("docker exec -i adshares_ads_1 sh -c \"echo '" + PRIVATE_KEY + "' >> " + keyFileName + "\"");
-        }
+        fc.addNodePrivateKey(nodeId, PRIVATE_KEY);
 
         // change node key
         String resp = fc.changeNodeKey(userData, PUBLIC_KEY);
