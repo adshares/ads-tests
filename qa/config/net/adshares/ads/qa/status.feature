@@ -1,5 +1,5 @@
 @status
-Feature: Account features
+Feature: Status features
 
   Scenario Outline: Set status <type_a> -> <type_b>
     Given <type_a> account user, who wants to change <type_b> status

@@ -17,7 +17,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
-import java.util.*;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 public class StatusStepDefs {
 
@@ -157,7 +159,8 @@ public class StatusStepDefs {
                     boolean isExpectedErrorDesc = EscConst.Error.CHANGE_STATUS_FAILED.equals(errorDesc)
                             || (EscConst.Error.CHANGE_STATUS_REMOTE_FAILED.equals(errorDesc) && !userData.isAccountFromSameNode(address));
 
-                    Assert.assertTrue("Unexpected error during account status change.", isExpectedErrorDesc);
+                    Assert.assertTrue(String.format("Unexpected error during account status change: %s", errorDesc),
+                            isExpectedErrorDesc);
                 } else {
                     BigDecimal fee = o.getAsJsonObject("tx").get("fee").getAsBigDecimal();
                     BigDecimal deduct = o.getAsJsonObject("tx").get("deduct").getAsBigDecimal();
@@ -221,9 +224,11 @@ public class StatusStepDefs {
                     String errorDesc = o.get("error").getAsString();
                     log.info("Error occurred: {}", errorDesc);
 
-                    boolean isExpectedErrorDesc = EscConst.Error.CHANGE_NODE_STATUS_FAILED.equals(errorDesc);
+                    boolean isExpectedErrorDesc = EscConst.Error.CHANGE_STATUS_FAILED.equals(errorDesc)
+                            || EscConst.Error.CHANGE_NODE_STATUS_FAILED.equals(errorDesc);
 
-                    Assert.assertTrue("Unexpected error during account status change.", isExpectedErrorDesc);
+                    Assert.assertTrue(String.format("Unexpected error during node status change: %s", errorDesc),
+                            isExpectedErrorDesc);
                 } else {
                     BigDecimal fee = o.getAsJsonObject("tx").get("fee").getAsBigDecimal();
                     BigDecimal deduct = o.getAsJsonObject("tx").get("deduct").getAsBigDecimal();
