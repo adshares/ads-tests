@@ -1,4 +1,4 @@
-package net.adshares.esc.qa.data;
+package net.adshares.ads.qa.data;
 
 import com.google.gson.Gson;
 import org.junit.Assert;
@@ -107,7 +107,7 @@ public class UserDataProvider {
             log.error("getUserDataList(count=" + count + ", singleNode=" + singleNode + ")");
             log.error("Not enough users. Needed {}, but only {} available.", count, userData.size());
         }
-        Assert.assertTrue(enoughUsers);
+        Assert.assertTrue("Not enough users.", enoughUsers);
 
         return userData;
     }
@@ -140,9 +140,42 @@ public class UserDataProvider {
             log.error("getUserDataFromDifferentNodes(count=" + count + ")");
             log.error("Not enough users. Needed {}, but only {} available.", count, userData.size());
         }
-        Assert.assertTrue(enoughUsers);
+        Assert.assertTrue("Not enough users.",enoughUsers);
 
         return userData;
+    }
+
+    /**
+     * Makes copy of user data with given address and adds it to list.
+     *
+     * @param userData user data
+     */
+    public UserData cloneUser(UserData userData, String address) {
+        if (userData != null && address != null) {
+
+            boolean isAddressInList = false;
+            for (UserData user : users) {
+                if (address.equals(user.getAddress())) {
+                    isAddressInList = true;
+                    break;
+                }
+            }
+            if (!isAddressInList) {
+                String node = address.substring(0, 4);
+                for (UserData user : users) {
+                    if (node.equals(user.getAddress().substring(0, 4))) {
+                        String port = user.getPort();
+                        String host = user.getHost();
+
+                        UserData u = new UserData(port, host, address, userData.getSecret());
+                        users.add(u);
+                        return u;
+                    }
+                }
+            }
+
+        }
+        return null;
     }
 
 }

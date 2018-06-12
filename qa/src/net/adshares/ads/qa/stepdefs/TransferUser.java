@@ -1,7 +1,8 @@
-package net.adshares.esc.qa.stepdefs;
+package net.adshares.ads.qa.stepdefs;
 
 
-import net.adshares.esc.qa.data.UserData;
+import net.adshares.ads.qa.util.LogEventTimestamp;
+import net.adshares.ads.qa.data.UserData;
 
 import java.math.BigDecimal;
 
@@ -11,6 +12,7 @@ public class TransferUser {
     private BigDecimal startBalance;
     private BigDecimal expBalance;
     private TransferData transferData;
+    private LogEventTimestamp lastEventTimestamp;
 
     public UserData getUserData() {
         return userData;
@@ -44,4 +46,11 @@ public class TransferUser {
         this.transferData = transferData;
     }
 
+    public LogEventTimestamp getLastEventTimestamp() {
+        return lastEventTimestamp;
+    }
+
+    public void setLastEventTimestamp(LogEventTimestamp lastEventTimestamp) {
+        this.lastEventTimestamp = lastEventTimestamp;
+    }
 }

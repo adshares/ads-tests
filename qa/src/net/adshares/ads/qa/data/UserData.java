@@ -1,6 +1,6 @@
-package net.adshares.esc.qa.data;
+package net.adshares.ads.qa.data;
 
-import net.adshares.esc.qa.util.EscConst;
+import net.adshares.ads.qa.util.EscConst;
 
 import java.math.BigDecimal;
 
@@ -9,7 +9,7 @@ public class UserData {
     private final String port;
     private final String host;
     private final String address;
-    private final String secret;
+    private String secret;
 
     public UserData(String port, String host, String address, String secret) {
         this.port = port;
@@ -18,8 +18,20 @@ public class UserData {
         this.secret = secret;
     }
 
+    String getPort() {
+        return port;
+    }
+
+    String getHost() {
+        return host;
+    }
+
     public String getAddress() {
         return address;
+    }
+
+    String getSecret() {
+        return secret;
     }
 
     /**
@@ -27,6 +39,15 @@ public class UserData {
      */
     public String getDataAsEscParams() {
         return String.format(" -P%s -H%s -A%s -s%s", port, host, address, secret);
+    }
+
+    /**
+     * Sets account private key.
+     *
+     * @param secret new secret key
+     */
+    public void setSecret(String secret) {
+        this.secret = secret;
     }
 
     /**

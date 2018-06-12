@@ -17,7 +17,11 @@ tmp
 .cproject
 *.iml
 
-
+##########################
+# QA Tests
+##########################
+!/qa/config/**/*
+!/qa/src/**/*
 # Maven
 target/
 # ESC
