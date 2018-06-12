@@ -183,7 +183,7 @@ public class FunctionCaller {
         String resp = null;
 
         int attempt = 0;
-        int attemptMax = 4;
+        int attemptMax = 5;
         while (attempt++ < attemptMax) {
             resp = FunctionCaller.getInstance().getBlockSingleCall(userData);
             JsonObject o = Utils.convertStringToJsonObject(resp);
@@ -193,6 +193,7 @@ public class FunctionCaller {
                 Assert.assertEquals("Unexpected error after account creation.",
                         EscConst.Error.GET_BLOCK_INFO_FAILED, errorDesc);
             } else {
+                log.info("getBlock resp in {} attempt", attempt);
                 return resp;
             }
 
@@ -435,8 +436,9 @@ public class FunctionCaller {
      * @return response: json when request was correct, empty otherwise
      */
     public String setNodeStatus(UserData userData, String nodeId, int status) {
-        log.info("setNodeStatus {}->{}: status {} (bin)", userData.getAddress(), nodeId, Integer.toBinaryString(status));
-        String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"set_node_status\", \"node\":\"%s\", \"status\":\"%d\"}') | ", nodeId, status)
+        int node = Integer.valueOf(nodeId, 16);
+        log.info("setNodeStatus {}->node {} (dec): status {} (bin)", userData.getAddress(), node, Integer.toBinaryString(status));
+        String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"set_node_status\", \"node\":\"%s\", \"status\":\"%d\"}') | ", node, status)
                 .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
         String output = callFunction(command);
         output = output.replaceFirst(".*}\\s*\\{", "{");
@@ -452,10 +454,11 @@ public class FunctionCaller {
      * @return response: json when request was correct, empty otherwise
      */
     public String setNodeStatus(UserData userData, String nodeId, String status) {
-        log.info("setNodeStatus {}->{}: status {} (bin)", userData.getAddress(), nodeId, status);
+        int node = Integer.valueOf(nodeId, 16);
+        log.info("setNodeStatus {}->node {} (dec): status {} (bin)", userData.getAddress(), node, status);
         BigInteger bi = new BigInteger(status, 2);
         String statusDec = bi.toString(10);
-        String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"set_node_status\", \"node\":\"%s\", \"status\":\"%s\"}') | ", nodeId, statusDec)
+        String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"set_node_status\", \"node\":\"%s\", \"status\":\"%s\"}') | ", node, statusDec)
                 .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
         String output = callFunction(command);
         output = output.replaceFirst(".*}\\s*\\{", "{");
@@ -507,8 +510,9 @@ public class FunctionCaller {
      * @return response: json when request was correct, empty otherwise
      */
     public String unsetNodeStatus(UserData userData, String nodeId, int status) {
-        log.info("unsetNodeStatus {}->{}: status {} (bin)", userData.getAddress(), nodeId, Integer.toBinaryString(status));
-        String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"unset_node_status\", \"node\":\"%s\", \"status\":\"%d\"}') | ", nodeId, status)
+        int node = Integer.valueOf(nodeId, 16);
+        log.info("unsetNodeStatus {}->node {} (dec): status {} (bin)", userData.getAddress(), node, Integer.toBinaryString(status));
+        String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"unset_node_status\", \"node\":\"%s\", \"status\":\"%d\"}') | ", node, status)
                 .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
         String output = callFunction(command);
         output = output.replaceFirst(".*}\\s*\\{", "{");
@@ -524,10 +528,11 @@ public class FunctionCaller {
      * @return response: json when request was correct, empty otherwise
      */
     public String unsetNodeStatus(UserData userData, String nodeId, String status) {
-        log.info("unsetNodeStatus {}->{}: status {} (bin)", userData.getAddress(), nodeId, status);
+        int node = Integer.valueOf(nodeId, 16);
+        log.info("unsetNodeStatus {}->node {} (dec): status {} (bin)", userData.getAddress(), node, status);
         BigInteger bi = new BigInteger(status, 2);
         String statusDec = bi.toString(10);
-        String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"unset_node_status\", \"node\":\"%s\", \"status\":\"%s\"}') | ", nodeId, statusDec)
+        String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"unset_node_status\", \"node\":\"%s\", \"status\":\"%s\"}') | ", node, statusDec)
                 .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
         String output = callFunction(command);
         output = output.replaceFirst(".*}\\s*\\{", "{");
