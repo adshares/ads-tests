@@ -132,12 +132,12 @@ public class FunctionCaller {
      * Calls create_account function.
      *
      * @param userData user data
-     * @param node     node in which account should be created
+     * @param node     node in which account should be created (decimal)
      * @return response: json when request was correct, empty otherwise
      */
-    public String createAccount(UserData userData, String node) {
+    public String createAccount(UserData userData, int node) {
         log.info("createAccount in {} node", node);
-        String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"create_account\", \"node\":\"%s\"}') | ", node)
+        String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"create_account\", \"node\":\"%d\"}') | ", node)
                 .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
         String output = callFunction(command);
         output = output.replaceFirst(".*}\\s*\\{", "{");

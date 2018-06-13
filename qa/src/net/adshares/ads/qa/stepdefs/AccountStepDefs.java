@@ -109,11 +109,11 @@ public class AccountStepDefs {
 
         String resp;
         if (isRemote) {
-            String userNode = userData.getAddress().substring(0, 4);
-            String node = getDifferentNodeId(userData, userNode);
-            Assert.assertNotNull("Not able to find different node", node);
+            String userNodeId = userData.getNodeId();
+            String nodeId = getDifferentNodeId(userData, userNodeId);
+            Assert.assertNotNull("Not able to find different node id.", nodeId);
             // Function create_account takes node parameter in decimal format
-            node = Integer.valueOf(node, 16).toString();
+            int node = Integer.valueOf(nodeId, 16);
             resp = requestRemoteAccountCreation(userData, node);
         } else {
             resp = fc.createAccount(userData);
@@ -177,10 +177,10 @@ public class AccountStepDefs {
      * Requests account creation few times with delay.
      *
      * @param userData user data
-     * @param node     node in which account should be created
+     * @param node     node in which account should be created (decimal)
      * @return response: json when request was correct, empty otherwise
      */
-    private String requestRemoteAccountCreation(UserData userData, String node) {
+    private String requestRemoteAccountCreation(UserData userData, int node) {
         String resp = "";
         int attempt = 0;
         int attemptMax = 6;

@@ -163,7 +163,7 @@ public class UserDataProvider {
             if (!isAddressInList) {
                 String nodeId = address.substring(0, 4);
                 for (UserData user : users) {
-                    if (nodeId.equals(user.getAddress().substring(0, 4))) {
+                    if (nodeId.equals(user.getNodeId())) {
                         String port = user.getPort();
                         String host = user.getHost();
 
