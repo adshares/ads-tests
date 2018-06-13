@@ -161,9 +161,9 @@ public class UserDataProvider {
                 }
             }
             if (!isAddressInList) {
-                String node = address.substring(0, 4);
+                String nodeId = address.substring(0, 4);
                 for (UserData user : users) {
-                    if (node.equals(user.getAddress().substring(0, 4))) {
+                    if (nodeId.equals(user.getAddress().substring(0, 4))) {
                         String port = user.getPort();
                         String host = user.getHost();
 
@@ -172,6 +172,14 @@ public class UserDataProvider {
                         return u;
                     }
                 }
+
+                // code below works only for local nodes due to default host (HOST constant)
+                log.info("Clone user to new node");
+                int node = Integer.valueOf(nodeId, 16);
+                int portAsInt = STARTING_PORT_INT + node - 1;
+                UserData u = new UserData(String.valueOf(portAsInt), HOST, address, userData.getSecret());
+                users.add(u);
+                return u;
             }
 
         }

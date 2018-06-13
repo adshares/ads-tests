@@ -98,6 +98,10 @@ public class EscConst {
      * TXS_UUS_FEE unset user status bits fee
      */
     public static final BigDecimal UNSET_USER_STATUS_FEE = new BigDecimal("0.00010000000");
+    /**
+     * VIP_MAX maximum number of vip nodes
+     */
+    public static final int VIP_MAX = 7;
 
     /**
      * Error messages

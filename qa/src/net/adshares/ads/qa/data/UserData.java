@@ -30,7 +30,21 @@ public class UserData {
         return address;
     }
 
-    String getSecret() {
+    /**
+     * @return node ordinal number (decimal)
+     */
+    public int getNode() {
+        return Integer.valueOf(getNodeId(), 16);
+    }
+
+    /**
+     * @return node id (hexadecimal)
+     */
+    public String getNodeId() {
+        return address.substring(0, 4);
+    }
+
+    public String getSecret() {
         return secret;
     }
 

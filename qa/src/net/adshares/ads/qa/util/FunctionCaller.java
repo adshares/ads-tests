@@ -182,8 +182,13 @@ public class FunctionCaller {
     public String getBlock(UserData userData) {
         String resp = null;
 
+        // block info is not available for short time after block change,
+        // expected delay is longer after node creation,
+        // therefore there is delay - it cannot be "wait for next block"
         int attempt = 0;
-        int attemptMax = 5;
+        final long delay = 3000L;
+        final int attemptMax = (int) (EscConst.BLOCK_PERIOD_MS / delay);
+        log.debug("attemptMax = {}", attemptMax);
         while (attempt++ < attemptMax) {
             resp = FunctionCaller.getInstance().getBlockSingleCall(userData);
             JsonObject o = Utils.convertStringToJsonObject(resp);
@@ -193,15 +198,32 @@ public class FunctionCaller {
                 Assert.assertEquals("Unexpected error after account creation.",
                         EscConst.Error.GET_BLOCK_INFO_FAILED, errorDesc);
             } else {
+                JsonArray arr = o.getAsJsonObject("block").getAsJsonArray("nodes");
+                // special node 0 is on the list but it is counted in total
+                int nodesCount = arr.size() - 1;
+                int vipNodeCount = 0;
+                for (JsonElement je : arr) {
+                    int status = je.getAsJsonObject().get("status").getAsInt();
+                    if ((status & 2) != 0) {
+                        ++vipNodeCount;
+                    }
+                }
+
+                if (Integer.min(nodesCount, EscConst.VIP_MAX) != vipNodeCount) {
+                    log.error("nodes count: {}", nodesCount);
+                    log.error("VIP_MAX:     {}", EscConst.VIP_MAX);
+                    log.error("vip count:   {}", vipNodeCount);
+                    Assert.fail("Incorrect number of vip nodes : " + vipNodeCount);
+                }
+
                 log.info("getBlock resp in {} attempt", attempt);
                 return resp;
             }
 
             Assert.assertTrue("Cannot get block info after delay", attempt < attemptMax);
-            // block info is not available for short time after block change,
-            // therefore there is 3 s delay - it cannot be "wait for next block"
+
             try {
-                Thread.sleep(3000L);
+                Thread.sleep(delay);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
@@ -642,15 +664,53 @@ public class FunctionCaller {
     /**
      * Appends node's private key to key.txt file.
      *
-     * @param nodeId     node id
+     * @param node       node ordinal number (decimal)
      * @param privateKey private key
      */
-    public void addNodePrivateKey(int nodeId, String privateKey) {
-        String keyFileName = String.format("/ads-data/node%d/key/key.txt", nodeId);
+    public void addNodePrivateKey(int node, String privateKey) {
+        String keyFileName = String.format("/ads-data/node%d/key/key.txt", node);
         String keyFileContent = callFunction(sysCmdPrefix.concat("cat " + keyFileName));
+
+        if ("".equals(keyFileContent)) {
+            // empty content means that whole directory must be created
+            // create directory in which key.txt file is stored
+            final String path = keyFileName.substring(0, keyFileName.lastIndexOf("/") + 1);
+            callFunction(sysCmdPrefix.concat("mkdir -p ").concat(path));
+        }
+
         if (!keyFileContent.contains(privateKey)) {
             callFunction(sysCmdPrefix.concat("sh -c \"echo '" + privateKey + "' >> " + keyFileName + "\""));
         }
+    }
+
+    /**
+     * Starts node.
+     *
+     * @param node node ordinal number (decimal)
+     */
+    public void startNode(int node) {
+        String path = String.format("/ads-data/node%d/", node);
+
+        // create options.cfg file
+        String optFileContent = callFunction(sysCmdPrefix.concat("cat /ads-data/node1/options.cfg"));
+        String[] arr = optFileContent.split("\n");
+        //svid
+        arr[0] = "svid=" + node;
+        //offi
+        int offi = Integer.valueOf(arr[1].split("=")[1]) + node - 1;
+        arr[1] = "offi=" + offi;
+        // port
+        int port = Integer.valueOf(arr[2].split("=")[1]) + node - 1;
+        arr[2] = "port=" + port;
+        // address is the same
+        // peers are the same
+        optFileContent = String.join("\n", arr);
+        String optFileName = path + "options.cfg";
+        callFunction(sysCmdPrefix.concat("sh -c \"echo '" + optFileContent + "' > " + optFileName + "\""));
+
+        // start node
+        callFunction(sysCmdPrefix.concat("sh -c \"cd " + path + ";escd -f 1 >stdout 2>stderr &\""));
+
     }
 
     /**
