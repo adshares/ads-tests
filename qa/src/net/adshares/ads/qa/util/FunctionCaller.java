@@ -19,15 +19,27 @@ import java.util.Map;
 
 public class FunctionCaller {
 
-    private static final String SYSTEM_PROP_ESC_BINARY = "bin.esc";
-    private static final String DEFAULT_ESC_BINARY = "docker exec -i -w /tmp/esc adshares_ads_1 esc";
+    private static final String SYSTEM_PROP_IS_DOCKER = "is.docker";
+    private static final String SYSTEM_PROP_DATA_DIR = "dir.data";
+    private static final String DEFAULT_DATA_DIR = "/ads-data";
+    private static final String DOCKER_ESC_BINARY_FMT = "docker exec -i -w %s adshares_ads_1 esc";
     private static final String ESC_BINARY_OPTS = " -n0 ";
-    private static String escBinary;
+    /**
+     * True, if test are performed on docker.
+     * False, if locally.
+     */
+    private boolean isDocker;
+    private String escBinary;
+    /**
+     * Directory in which node and user data is stored
+     */
+    private String dataDir;
+    private String tmpDir;
     /**
      * If docker is in use, all system commands must be preceded with "docker exec -i <<docker_image>> ".
      * System command is every command, which is not called on esc binary.
      */
-    private static String sysCmdPrefix;
+    private String sysCmdPrefix;
 
     /**
      * Timeout for compilation in milliseconds
@@ -44,22 +56,30 @@ public class FunctionCaller {
 
 
     private FunctionCaller() {
+        isDocker = "1".equals(System.getProperty(SYSTEM_PROP_IS_DOCKER));
+
+        dataDir = System.getProperty(SYSTEM_PROP_DATA_DIR, DEFAULT_DATA_DIR);
+        // remove '/', if is present at the end of dir
+        if (dataDir.charAt(dataDir.length() - 1) == '/') {
+            dataDir = dataDir.substring(0, dataDir.length() - 1);
+        }
+        tmpDir = dataDir + "/tmp";
+        if (isDocker) {
+            escBinary = String.format(DOCKER_ESC_BINARY_FMT, tmpDir);
+            int lastIndex = escBinary.lastIndexOf(" ");
+            // remove esc binary from end
+            sysCmdPrefix = escBinary.substring(0, lastIndex + 1);
+            // remove -w option (working directory)
+            sysCmdPrefix = sysCmdPrefix.replaceFirst(" -w \\S+ ", " ");
+        } else {
+            escBinary = "esc";
+            sysCmdPrefix = "";
+        }
     }
 
     public static FunctionCaller getInstance() {
         if (instance == null) {
             instance = new FunctionCaller();
-
-            escBinary = System.getProperty(SYSTEM_PROP_ESC_BINARY, DEFAULT_ESC_BINARY);
-            if (escBinary.contains("docker")) {
-                int lastIndex = escBinary.lastIndexOf(" ");
-                // remove esc binary from end
-                sysCmdPrefix = escBinary.substring(0, lastIndex + 1);
-                // remove -w option (working directory)
-                sysCmdPrefix = sysCmdPrefix.replaceFirst(" -w \\S+ ", " ");
-            } else {
-                sysCmdPrefix = "";
-            }
         }
         return instance;
     }
@@ -646,7 +666,7 @@ public class FunctionCaller {
      * @param privateKey private key
      */
     public void addNodePrivateKey(int nodeId, String privateKey) {
-        String keyFileName = String.format("/ads-data/node%d/key/key.txt", nodeId);
+        String keyFileName = String.format("%s/node%d/key/key.txt", dataDir, nodeId);
         String keyFileContent = callFunction(sysCmdPrefix.concat("cat " + keyFileName));
         if (!keyFileContent.contains(privateKey)) {
             callFunction(sysCmdPrefix.concat("sh -c \"echo '" + privateKey + "' >> " + keyFileName + "\""));
@@ -657,30 +677,25 @@ public class FunctionCaller {
      * Deletes ads cache.
      */
     public void deleteCache() {
-        // deletes local cache
-//        try {
-//            Utils.deleteDirectory("log");
-//            Utils.deleteDirectory("out");
-//        } catch (IOException e) {
-//            log.warn("Unable to delete cache");
-//        }
-        // deletes cache in docker
-        callFunction(sysCmdPrefix.concat("rm -rf /tmp/esc"));
-        callFunction(sysCmdPrefix.concat("mkdir /tmp/esc"));
+        // deletes cache
+        callFunction(sysCmdPrefix + "rm -rf " + tmpDir);
+        callFunction(sysCmdPrefix + "mkdir " + tmpDir);
     }
 
     /**
      * Waits for esc compilation
      */
     public void waitForCompilation() {
-        String resp;
-        long startTime = System.currentTimeMillis();
-        do {
-            resp = callFunction(sysCmdPrefix.concat("/docker/wait-up.php"));
-            Assert.assertFalse("Timeout during docker start",
-                    resp.contains("timeout") || resp.contains("failed")
-                            || (System.currentTimeMillis() - startTime > COMPILATION_TIMEOUT));
-            Assert.assertNotEquals("No response from docker", "", resp);
-        } while (!resp.contains("started"));
+        if (isDocker) {
+            String resp;
+            long startTime = System.currentTimeMillis();
+            do {
+                resp = callFunction(sysCmdPrefix.concat("/docker/wait-up.php"));
+                Assert.assertFalse("Timeout during docker start",
+                        resp.contains("timeout") || resp.contains("failed")
+                                || (System.currentTimeMillis() - startTime > COMPILATION_TIMEOUT));
+                Assert.assertNotEquals("No response from docker", "", resp);
+            } while (!resp.contains("started"));
+        }
     }
 }
