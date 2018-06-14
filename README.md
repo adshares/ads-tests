@@ -6,18 +6,20 @@
 Tests require Java 1.8 and Maven.
 
 ### Commands to run tests
-To run tests use commands below.
-
-If genesis file (genesis.json) is in main directory of esc:
+Command to run tests:
 ```
 mvn clean test -f pom-qa.xml
 ```
-In case of custom location of genesis file:
-```
-mvn clean test -f pom-qa.xml -Dgenesis.file=PATH_TO_GENESIS_FILE
-```
 
-Currently available test categories are:
+Available options:
+- `-Dgenesis.file=PATH_TO_GENESIS_FILE` starts test with custom genesis file, default is `genesis.json` in working directory,
+- `-Dcucumber.options` sets cucumber framework options, could be used to specify test category,
+- `-Dis.docker`:
+  - 0 - (default) test with local binary (must be added to PATH),
+  - 1 - test on Docker,
+- -`Ddir.data` sets directory in which is stored nodes and users data, default is `/ads-data`.
+
+Available test categories are:
 * `transfer` - local and remote transfers, both groups have detail categories `transfer_local` and `transfer_remote`,
 * `retrieve_funds` - funds retrieval from inactive account,
 * `broadcast` - broadcast message,
