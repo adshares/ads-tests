@@ -1,8 +1,8 @@
 package net.adshares.ads.qa.stepdefs;
 
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import cucumber.api.PendingException;
 import cucumber.api.java.en.Given;
 import cucumber.api.java.en.Then;
 import cucumber.api.java.en.When;
@@ -55,45 +55,56 @@ public class NodeStepDefs {
         Assert.assertEquals("Invalid deduct computed", 0, expectedDeduct.compareTo(deduct));
 
 
-        int nodeId = getCreatedNodeIdFromLog();
-        Assert.assertTrue("Incorrect node id", nodeId > 0);
+        int node = getCreatedNodeOrdinalNumberFromLog();
+        Assert.assertTrue("Incorrect node = " + node, node > 0);
         // convert dec node id to hex
-        String address = String.format("%04X", nodeId) + "-00000000-XXXX";
-        log.info("Address in created node{}: {}", nodeId, address);
+        String address = String.format("%04X", node) + "-00000000-XXXX";
+        log.info("Address in created node{}: {}", node, address);
 
-        Assert.assertTrue("Created address is not valid", EscUtils.isValidAccountAddress(address));
+        Assert.assertTrue("Created address is not valid: " + address, EscUtils.isValidAccountAddress(address));
         createdUserData = UserDataProvider.getInstance().cloneUser(userData, address);
+
+        FunctionCaller.getInstance().addNodePrivateKey(node, userData.getSecret());
+        FunctionCaller.getInstance().startNode(node);
     }
 
     @Then("^node is created$")
     public void node_is_created() {
-        //TODO rewrite function, below is code copied from step defs for account
-        // Sometimes node is created with delay,
-        // therefore there are next attempts.
-//        int attempt = 0;
-//        int attemptMax = 3;
-//        while (attempt++ < attemptMax) {
-//            String resp = FunctionCaller.getInstance().getMe(createdUserData);
-//            JsonObject o = Utils.convertStringToJsonObject(resp);
-//
-//            if (o.has("error")) {
-//                String errorDesc = o.get("error").getAsString();
-//                log.info("Error occurred: {}", errorDesc);
-//                Assert.assertEquals("Unexpected error after account creation.",
-//                        EscConst.Error.GET_GLOBAL_USER_FAILED, errorDesc);
-//            } else {
-//                BigDecimal balance = o.getAsJsonObject("account").get("balance").getAsBigDecimal();
-//                log.info("Balance {}", balance.toPlainString());
-//                break;
-//            }
-//
-//            Assert.assertTrue("Cannot get account info after delay", attempt < attemptMax);
-//            EscUtils.waitForNextBlock();
-//        }
-        throw new PendingException();
+        log.info("node_is_created: start");
+
+        EscUtils.waitForNextBlock();
+        String nodeId = createdUserData.getNodeId();
+
+        // Node needs to synchronize with network, therefore there are few attempts.
+
+        int msid = 0;
+        int attempt = 0;
+        int attemptMax = 105;
+        while (attempt++ < attemptMax) {
+            String resp = FunctionCaller.getInstance().getBlock(UserDataProvider.getInstance().getUserDataList(1).get(0));
+            JsonObject o = Utils.convertStringToJsonObject(resp);
+            JsonArray arr = o.getAsJsonObject("block").getAsJsonArray("nodes");
+            for (JsonElement je : arr) {
+                JsonObject nodeEntry = je.getAsJsonObject();
+                if (nodeId.equals(nodeEntry.get("id").getAsString())) {
+                    msid = nodeEntry.get("msid").getAsInt();
+                    log.info("msid {}", msid);
+                    break;
+                }
+            }
+
+            if (msid != 0) {
+                break;
+            }
+
+            Assert.assertTrue("Node didn't start.", attempt < attemptMax);
+            EscUtils.waitForNextBlock();
+        }
+        log.info("node_is_created: end");
+
     }
 
-    private int getCreatedNodeIdFromLog() {
+    private int getCreatedNodeOrdinalNumberFromLog() {
         int nodeId = -1;
 
         LogFilter lf = new LogFilter(true);
@@ -114,7 +125,7 @@ public class NodeStepDefs {
                 break;
             }
 
-            Assert.assertTrue("Cannot get node id after delay", attempt < attemptMax);
+            Assert.assertTrue("Cannot get node ordinal after delay", attempt < attemptMax);
         }
 
         return nodeId;
@@ -138,8 +149,8 @@ public class NodeStepDefs {
         FunctionCaller fc = FunctionCaller.getInstance();
 
         // add private key to key.txt file, if it is not present
-        int nodeId = Integer.valueOf(userData.getAddress().substring(0, 4), 16);
-        fc.addNodePrivateKey(nodeId, PRIVATE_KEY);
+        int node = Integer.valueOf(userData.getNodeId(), 16);
+        fc.addNodePrivateKey(node, PRIVATE_KEY);
 
         // change node key
         String resp = fc.changeNodeKey(userData, PUBLIC_KEY);
@@ -157,6 +168,7 @@ public class NodeStepDefs {
 
     @Then("^node key is changed$")
     public void node_key_is_changed() {
+        EscUtils.waitForNextBlock();
         EscUtils.waitForNextBlock();
         BigDecimal balance = FunctionCaller.getInstance().getUserAccountBalance(userData);
         log.info("Balance {}", balance.toPlainString());

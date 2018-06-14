@@ -59,8 +59,8 @@ public class Slf4jFormatter implements Formatter {
         msgLevelMap.put("comment", LogLevel.INFO);
         msgLevelMap.put("passed", LogLevel.INFO);
         msgLevelMap.put("output", LogLevel.INFO);
+        msgLevelMap.put("outline", LogLevel.INFO);
 
-        msgLevelMap.put("outline", LogLevel.WARN);
         msgLevelMap.put("skipped", LogLevel.WARN);
         msgLevelMap.put("tag", LogLevel.WARN);
 
@@ -152,7 +152,7 @@ public class Slf4jFormatter implements Formatter {
         log(SCENARIO_INDENT + getScenarioDefinitionText(scenarioOutline) + " " + getLocationText(currentFeatureFile, scenarioOutline.getLocation().getLine()));
         printDescription(scenarioOutline.getDescription());
         for (Step step : scenarioOutline.getSteps()) {
-            log(STEP_INDENT + step.getKeyword() + step.getText(), msgLevelMap.get("skipped"));
+            log(STEP_INDENT + step.getKeyword() + step.getText(), msgLevelMap.get("outline"));
         }
     }
 
