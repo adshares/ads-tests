@@ -8,18 +8,26 @@ public class EscUtils {
     /**
      * Checks, if node accepted transaction.
      *
+     * @param jsonObject response from function (eg. send_one, send_many) as JSONObject
+     * @return true, if transfer was accepted by node, false otherwise
+     */
+    public static boolean isTransactionAcceptedByNode(JsonObject jsonObject) {
+        if (jsonObject.has("error")) {
+            return false;
+        }
+        jsonObject = jsonObject.getAsJsonObject("tx");
+        return jsonObject.has("id");
+    }
+
+    /**
+     * Checks, if node accepted transaction.
+     *
      * @param jsonResp response from function (eg. send_one, send_many) as String
      * @return true, if transfer was accepted by node, false otherwise
      */
     public static boolean isTransactionAcceptedByNode(String jsonResp) {
         JsonObject o = Utils.convertStringToJsonObject(jsonResp);
-
-        if (o.has("error")) {
-            return false;
-        }
-
-        o = o.getAsJsonObject("tx");
-        return o.has("id");
+        return isTransactionAcceptedByNode(o);
     }
 
     /**

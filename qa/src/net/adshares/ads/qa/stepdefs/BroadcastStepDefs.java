@@ -204,7 +204,7 @@ public class BroadcastStepDefs {
 
     private void waitForBlock() {
         try {
-            Thread.sleep(1000L * EscConst.BLOCK_PERIOD);
+            Thread.sleep(EscConst.BLOCK_PERIOD_MS);
         } catch (InterruptedException e) {
             log.error("Sleep interrupted");
             log.error(e.toString());
