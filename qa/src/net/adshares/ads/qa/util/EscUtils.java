@@ -4,7 +4,17 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
+import javax.xml.bind.DatatypeConverter;
+import java.util.Random;
+
 public class EscUtils {
+    /**
+     * Maximum message size in bytes
+     * <p>
+     * Message size is limited by maximum String length. Every byte is encoded as two chars.
+     */
+    private static final int MESSAGE_SIZE_MAX = Integer.MAX_VALUE / 2 + 1;
+
     /**
      * Checks, if node accepted transaction.
      *
@@ -28,6 +38,22 @@ public class EscUtils {
     public static boolean isTransactionAcceptedByNode(String jsonResp) {
         JsonObject o = Utils.convertStringToJsonObject(jsonResp);
         return isTransactionAcceptedByNode(o);
+    }
+
+    /**
+     * Generates random message.
+     *
+     * @param size size of message in bytes
+     * @return random message, hexadecimal String (without leading '0x', with even number of characters)
+     */
+    public static String generateMessage(int size) {
+        Random random = new Random();
+        if (size > MESSAGE_SIZE_MAX) {
+            size = MESSAGE_SIZE_MAX;
+        }
+        byte[] resBuf = new byte[size];
+        random.nextBytes(resBuf);
+        return DatatypeConverter.printHexBinary(resBuf);
     }
 
     /**

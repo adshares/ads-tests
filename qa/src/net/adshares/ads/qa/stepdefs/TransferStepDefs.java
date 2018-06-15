@@ -31,6 +31,7 @@ public class TransferStepDefs {
 
     private TransferUser txSender;
     private List<TransferUser> txReceivers;
+    private String message;
 
 
     @Given("^(\\d+) users in (same|different) node$")
@@ -75,8 +76,8 @@ public class TransferStepDefs {
         }
     }
 
-    @When("^sender sends ([-]?\\d+(\\.\\d+)?) ADST to receiver[s]?$")
-    public void send_adst(String txAmount, String decimalPart) {
+    @When("^sender sends ([-]?\\d+(\\.\\d+)?) ADST to receiver[s]?( with message)?$")
+    public void send_adst(String txAmount, String decimalPart, String withMessage) {
         FunctionCaller fc = FunctionCaller.getInstance();
         UserData sender = txSender.getUserData();
         String senderAddress = sender.getAddress();
@@ -102,7 +103,12 @@ public class TransferStepDefs {
             UserData receiver = txReceivers.get(0).getUserData();
             String receiverAddress = receiver.getAddress();
 
-            jsonResp = fc.sendOne(sender, receiverAddress, txAmount);
+            if (withMessage != null) {
+                message = EscUtils.generateMessage(32);
+                jsonResp = fc.sendOne(sender, receiverAddress, txAmount, message);
+            } else {
+                jsonResp = fc.sendOne(sender, receiverAddress, txAmount);
+            }
             fee = getTransferFee(senderAddress, receiverAddress, amount);
         }
         boolean isTransactionAccepted = EscUtils.isTransactionAcceptedByNode(jsonResp);
@@ -191,7 +197,7 @@ public class TransferStepDefs {
     public void send_all(String included) {
         if ("not".equals(included.trim())) {
             // when fee is not included transfer will not be successful
-            send_adst(txSender.getStartBalance().toString(), null);
+            send_adst(txSender.getStartBalance().toString(), null, null);
         } else {
             UserData sender = txSender.getUserData();
             String senderAddress = sender.getAddress();
@@ -224,7 +230,7 @@ public class TransferStepDefs {
             txAmount = txAmount.subtract(minAmount);
             log.info("txAmount post: {}", txAmount);
 
-            send_adst(txAmount.toString(), null);
+            send_adst(txAmount.toString(), null, null);
         }
     }
 
@@ -388,6 +394,24 @@ public class TransferStepDefs {
         }
     }
 
+    @Then("^receiver can read message$")
+    public void receiver_can_read_message() {
+
+        FunctionCaller fc = FunctionCaller.getInstance();
+        TransferUser txReceiver = txReceivers.get(0);
+        String resp = fc.getLog(txReceiver.getUserData(), txReceiver.getLastEventTimestamp());
+        LogFilter lf = new LogFilter(true);
+        lf.addFilter("type", "send_one");
+        LogChecker lc = new LogChecker(resp);
+        JsonArray arr = lc.getFilteredLogArray(lf);
+        String receivedMessage = arr.get(0).getAsJsonObject().get("message").getAsString();
+
+        String reason = new AssertReason.Builder().msg("Invalid message.")
+                .req(fc.getLastRequest()).res(fc.getLastResponse()).build();
+        assertThat(reason, receivedMessage, equalTo(message));
+        log.info("read message {}", receivedMessage);
+    }
+    
     @Given("user log")
     public void user_log() {
         FunctionCaller fc = FunctionCaller.getInstance();

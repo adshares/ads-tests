@@ -400,7 +400,7 @@ public class FunctionCaller {
     }
 
     /**
-     * Calls send_one function
+     * Calls send_one function.
      *
      * @param sender          sender data
      * @param receiverAddress receiver address
@@ -412,8 +412,24 @@ public class FunctionCaller {
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"send_one\", \"address\":\"%s\", \"amount\":\"%s\"}') | ", receiverAddress, amount)
                 .concat(escBinary).concat(ESC_BINARY_OPTS).concat(sender.getDataAsEscParams());
         String output = callFunction(command);
-        output = output.replaceFirst(".*}\\s*\\{", "{");
-        return output;
+        return output.replaceFirst(".*}\\s*\\{", "{");
+    }
+
+    /**
+     * Calls send_one function.
+     *
+     * @param sender          sender data
+     * @param receiverAddress receiver address
+     * @param amount          transfer amount
+     * @param message         message
+     * @return response: json when request was correct, empty otherwise
+     */
+    public String sendOne(UserData sender, String receiverAddress, String amount, String message) {
+        log.info("sendOne {}->{}: {}, msg: {}", sender.getAddress(), receiverAddress, amount, message);
+        String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"send_one\", \"address\":\"%s\", \"amount\":\"%s\", \"message\":\"%s\"}') | ", receiverAddress, amount, message)
+                .concat(escBinary).concat(ESC_BINARY_OPTS).concat(sender.getDataAsEscParams());
+        String output = callFunction(command);
+        return output.replaceFirst(".*}\\s*\\{", "{");
     }
 
     /**
