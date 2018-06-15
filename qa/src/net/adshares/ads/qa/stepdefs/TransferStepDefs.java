@@ -54,7 +54,6 @@ public class TransferStepDefs {
                 maxBalanceIndex = i;
             }
         }
-
         assertThat("No user with positive balance.", maxBalanceIndex, not(equalTo(-1)));
 
         LogChecker lc = new LogChecker();
@@ -74,6 +73,26 @@ public class TransferStepDefs {
                 txReceivers.add(tu);
             }
         }
+    }
+
+    @Given("^user, who wants to send transfer$")
+    public void user_who_wants_to_send_transfer() {
+        List<UserData> userDataList = UserDataProvider.getInstance().getUserDataList();
+
+        FunctionCaller fc = FunctionCaller.getInstance();
+
+        txSender = null;
+        for (UserData u : userDataList) {
+            BigDecimal balance = fc.getUserAccountBalance(u);
+            if (balance.compareTo(new BigDecimal("1000")) > 0) {
+                txSender = new TransferUser();
+                txSender.setUserData(u);
+                txSender.setStartBalance(balance);
+                break;
+            }
+        }
+
+        assertThat("No user with sufficient balance.", txSender, not(equalTo(null)));
     }
 
     @When("^sender sends ([-]?\\d+(\\.\\d+)?) ADST to receiver[s]?( with message)?$")
@@ -411,7 +430,47 @@ public class TransferStepDefs {
         assertThat(reason, receivedMessage, equalTo(message));
         log.info("read message {}", receivedMessage);
     }
-    
+
+    @When("^sender sends many transfers to single receiver$")
+    public void sender_sends_many_transfers_to_single_receiver() {
+        String[] data = new String[]{"00FF-00000000-XXXX", "0.00000000001"};
+
+        List<String[]> recList = new ArrayList<>(2);
+        for (int j = 0; j < 2; j++) {
+            recList.add(data);
+        }
+
+        String resp = FunctionCaller.getInstance().sendMany(txSender.getUserData(), recList);
+        JsonObject o = Utils.convertStringToJsonObject(resp);
+        String errorDesc = o.has("error") ? o.get("error").getAsString() : "null";
+        assertThat(errorDesc, equalTo(EscConst.Error.DUPLICATED_TARGET));
+
+        isTransactionAccepted = EscUtils.isTransactionAcceptedByNode(o);
+    }
+
+    private boolean isTransactionAccepted;
+
+    @When("^sender sends transfer in which message length is incorrect$")
+    public void sender_sends_transfer_incorrect_msg_length() {
+        String resp = FunctionCaller.getInstance().sendOne(txSender.getUserData(), "00FF-00000000-XXXX", "0.00000000001", "ABCD");
+        JsonObject o = Utils.convertStringToJsonObject(resp);
+        String errorDesc = o.has("error") ? o.get("error").getAsString() : "null";
+        assertThat(errorDesc, equalTo(EscConst.Error.COMMAND_PARSE_ERROR));
+
+        isTransactionAccepted = EscUtils.isTransactionAcceptedByNode(o);
+    }
+
+    @Then("^transfer is rejected$")
+    public void transfer_is_rejected() {
+        if (isTransactionAccepted) {
+            FunctionCaller fc = FunctionCaller.getInstance();
+            String reason = new AssertReason.Builder().msg("Transaction is accepted.")
+                    .req(fc.getLastRequest()).res(fc.getLastResponse()).build();
+
+            assertThat(reason, isTransactionAccepted, equalTo(false));
+        }
+    }
+
     @Given("user log")
     public void user_log() {
         FunctionCaller fc = FunctionCaller.getInstance();
@@ -506,5 +565,4 @@ public class TransferStepDefs {
                 .req(fc.getLastRequest()).res(fc.getLastResponse()).build();
         assertThat(reason, amount, comparesEqualTo(amountExpected));
     }
-
 }

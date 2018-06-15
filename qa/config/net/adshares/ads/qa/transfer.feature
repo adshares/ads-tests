@@ -36,6 +36,11 @@ Feature: Local transfers
     Then receiver balance is as expected (changed by amount)
     And sender balance is as expected (changed by amount and fee)
 
+  Scenario: Send many to single (invalid)
+    Given user, who wants to send transfer
+    When sender sends many transfers to single receiver
+    Then transfer is rejected
+
   Scenario: Send transfer with message
     Given 2 users in same node
     When sender sends 0.00001000000 ADST to receiver with message
@@ -43,6 +48,11 @@ Feature: Local transfers
     Then receiver can read message
     And receiver balance is as expected (changed by amount)
     And sender balance is as expected (changed by amount and fee)
+
+  Scenario: Send transfer with incorrect message (invalid)
+    Given user, who wants to send transfer
+    When sender sends transfer in which message length is incorrect
+    Then transfer is rejected
 
   Scenario: Send all collected funds (no fee included)
     Given 2 users in same node
