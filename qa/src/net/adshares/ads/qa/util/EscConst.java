@@ -101,7 +101,7 @@ public class EscConst {
     /**
      * VIP_MAX maximum number of vip nodes
      */
-    public static final int VIP_MAX = 7;
+    static final int VIP_MAX = 7;
 
     /**
      * Error messages
@@ -116,6 +116,8 @@ public class EscConst {
         public static final String CHANGE_NODE_STATUS_FAILED = "Not authorized to change node status";
         public static final String CHANGE_STATUS_FAILED = "Not authorized to change bits";
         public static final String CHANGE_STATUS_REMOTE_FAILED = "Changing account status on remote node not allowed";
+        public static final String COMMAND_PARSE_ERROR = "Parse error, check input data";
+        public static final String DUPLICATED_TARGET = "Duplicated target";
     }
 
     /**

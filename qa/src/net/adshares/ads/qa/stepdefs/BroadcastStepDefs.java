@@ -27,12 +27,7 @@ public class BroadcastStepDefs {
     private Set<BroadcastMessageData> bmdSet;
     private String lastResp;
 
-    /**
-     * Maximum message size in bytes
-     * <p>
-     * Message size is limited by maximum String length. Every byte is encoded as two chars.
-     */
-    private static final int MESSAGE_MAX_SIZE = Integer.MAX_VALUE / 2 + 1;
+
 
     @Given("^set of users$")
     public void set_of_users() {
@@ -52,7 +47,7 @@ public class BroadcastStepDefs {
     public void one_of_them_sends_broadcast_message_len(int messageSize) {
         UserData u = userDataList.get(0);
         FunctionCaller fc = FunctionCaller.getInstance();
-        lastResp = fc.broadcast(u, generateMessage(messageSize));
+        lastResp = fc.broadcast(u, EscUtils.generateMessage(messageSize));
     }
 
     @When("^one of them sends many broadcast messages$")
@@ -79,7 +74,7 @@ public class BroadcastStepDefs {
     private BroadcastMessageData sendBroadcastMessageData(UserData userData, int messageSize) {
         FunctionCaller fc = FunctionCaller.getInstance();
 
-        String message = generateMessage(messageSize);
+        String message = EscUtils.generateMessage(messageSize);
         BigDecimal feeExpected = getBroadcastFee(message);
 
         String resp = fc.broadcast(userData, message);
@@ -204,7 +199,7 @@ public class BroadcastStepDefs {
 
     private void waitForBlock() {
         try {
-            Thread.sleep(1000L * EscConst.BLOCK_PERIOD);
+            Thread.sleep(EscConst.BLOCK_PERIOD_MS);
         } catch (InterruptedException e) {
             log.error("Sleep interrupted");
             log.error(e.toString());
@@ -221,22 +216,6 @@ public class BroadcastStepDefs {
             Assert.assertFalse("Message was accepted.", EscUtils.isTransactionAcceptedByNode(lastResp));
             log.info("Message was rejected: not accepted by node");
         }
-    }
-
-    /**
-     * Generates random message.
-     *
-     * @param size size of message in bytes
-     * @return random message, hexadecimal String (without leading '0x', with even number of characters)
-     */
-    private String generateMessage(int size) {
-        Random random = new Random();
-        if (size > MESSAGE_MAX_SIZE) {
-            size = MESSAGE_MAX_SIZE;
-        }
-        byte[] resBuf = new byte[size];
-        random.nextBytes(resBuf);
-        return DatatypeConverter.printHexBinary(resBuf);
     }
 
     /**

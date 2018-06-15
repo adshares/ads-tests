@@ -15,10 +15,19 @@ import java.io.*;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 public class FunctionCaller {
 
+    /**
+     * Timeout for compilation in milliseconds
+     */
+    private static final int COMPILATION_TIMEOUT = 300000;// 300000 ms = 5 min.
+    /**
+     * Name of temporary file that is created for commands that cannot be called directly in shell
+     */
+    private static final String TEMP_FILE_NAME = "tmp";
     private static final String SYSTEM_PROP_IS_DOCKER = "is.docker";
     private static final String SYSTEM_PROP_DATA_DIR = "dir.data";
     private static final String DEFAULT_DATA_DIR = "/ads-data";
@@ -41,14 +50,9 @@ public class FunctionCaller {
      */
     private String sysCmdPrefix;
 
-    /**
-     * Timeout for compilation in milliseconds
-     */
-    private static final int COMPILATION_TIMEOUT = 300000;// 300000 ms = 5 min.
-    /**
-     * Name of temporary file that is created for commands that cannot be called directly in shell
-     */
-    private static final String TEMP_FILE_NAME = "tmp";
+    private String lastRequest;
+
+    private String lastResponse;
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
@@ -396,7 +400,7 @@ public class FunctionCaller {
     }
 
     /**
-     * Calls send_one function
+     * Calls send_one function.
      *
      * @param sender          sender data
      * @param receiverAddress receiver address
@@ -408,12 +412,28 @@ public class FunctionCaller {
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"send_one\", \"address\":\"%s\", \"amount\":\"%s\"}') | ", receiverAddress, amount)
                 .concat(escBinary).concat(ESC_BINARY_OPTS).concat(sender.getDataAsEscParams());
         String output = callFunction(command);
-        output = output.replaceFirst(".*}\\s*\\{", "{");
-        return output;
+        return output.replaceFirst(".*}\\s*\\{", "{");
     }
 
     /**
-     * Calls send_many function
+     * Calls send_one function.
+     *
+     * @param sender          sender data
+     * @param receiverAddress receiver address
+     * @param amount          transfer amount
+     * @param message         message
+     * @return response: json when request was correct, empty otherwise
+     */
+    public String sendOne(UserData sender, String receiverAddress, String amount, String message) {
+        log.info("sendOne {}->{}: {}, msg: {}", sender.getAddress(), receiverAddress, amount, message);
+        String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"send_one\", \"address\":\"%s\", \"amount\":\"%s\", \"message\":\"%s\"}') | ", receiverAddress, amount, message)
+                .concat(escBinary).concat(ESC_BINARY_OPTS).concat(sender.getDataAsEscParams());
+        String output = callFunction(command);
+        return output.replaceFirst(".*}\\s*\\{", "{");
+    }
+
+    /**
+     * Calls send_many function.
      *
      * @param sender      sender data
      * @param receiverMap map of receiver - amount pairs
@@ -426,6 +446,34 @@ public class FunctionCaller {
         }
         Gson gson = new GsonBuilder().create();
         String wires = gson.toJson(receiverMap);
+        String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"send_many\", \"wires\":%s}') | ", wires)
+                .concat(escBinary).concat(ESC_BINARY_OPTS).concat(sender.getDataAsEscParams());
+        String output = callFunction(command);
+        output = output.replaceFirst(".*}\\s*\\{", "{");
+        return output;
+    }
+
+    /**
+     * Calls send_many function.
+     *
+     * @param sender       sender data
+     * @param receiverList list of receiver - amount pairs
+     * @return response: json when request was correct, empty otherwise
+     */
+    public String sendMany(UserData sender, List<String[]> receiverList) {
+        log.info("sendMany {}->", sender.getAddress());
+        StringBuilder sb = new StringBuilder("{");
+        for (String[] entry : receiverList) {
+            log.info("sendMany ->{}: {}", entry[0], entry[1]);
+            sb.append("\"");
+            sb.append(entry[0]);
+            sb.append("\":\"");
+            sb.append(entry[1]);
+            sb.append("\",");
+        }
+        sb.setLength(sb.length() - 1);
+        sb.append("}");
+        String wires = sb.toString();
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"send_many\", \"wires\":%s}') | ", wires)
                 .concat(escBinary).concat(ESC_BINARY_OPTS).concat(sender.getDataAsEscParams());
         String output = callFunction(command);
@@ -589,6 +637,7 @@ public class FunctionCaller {
      */
     private String callFunction(String cmd) {
         log.debug("request: {}", cmd);
+        lastRequest = cmd;
 
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         ByteArrayOutputStream errorStream = new ByteArrayOutputStream();
@@ -640,6 +689,7 @@ public class FunctionCaller {
             log.error(e.toString());
         }
 
+        lastResponse = resp;
         return resp;
     }
 
@@ -665,8 +715,17 @@ public class FunctionCaller {
      * @return user account balance
      */
     public BigDecimal getUserAccountBalance(UserData userData) {
-        JsonObject o = Utils.convertStringToJsonObject(getMe(userData));
-        BigDecimal balance = o.getAsJsonObject("account").get("balance").getAsBigDecimal();
+        String resp = getMe(userData);
+        JsonObject o = Utils.convertStringToJsonObject(resp);
+        BigDecimal balance = null;
+        try {
+            balance = o.getAsJsonObject("account").get("balance").getAsBigDecimal();
+        } catch (NullPointerException npe) {
+            String msg = new AssertReason.Builder().req(getLastRequest()).res(getLastResponse())
+                    .msg("User " + userData.getAddress())
+                    .msg("NullPointerException").build();
+            Assert.fail(msg);
+        }
         log.info("user {} balance: {}", userData.getAddress(), balance.toPlainString());
         return balance;
     }
@@ -757,5 +816,19 @@ public class FunctionCaller {
                 Assert.assertNotEquals("No response from docker", "", resp);
             } while (!resp.contains("started"));
         }
+    }
+
+    /**
+     * @return last request
+     */
+    public String getLastRequest() {
+        return lastRequest;
+    }
+
+    /**
+     * @return last response
+     */
+    public String getLastResponse() {
+        return lastResponse;
     }
 }

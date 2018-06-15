@@ -120,7 +120,7 @@ public class RetrieveFundsStepDefs {
         do {
             Assert.assertTrue(String.format("Account was not empty in time of %d blocks", loopCntMax), loopCnt < loopCntMax);
             try {
-                Thread.sleep(1000L * EscConst.BLOCK_PERIOD);
+                Thread.sleep(EscConst.BLOCK_PERIOD_MS);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
