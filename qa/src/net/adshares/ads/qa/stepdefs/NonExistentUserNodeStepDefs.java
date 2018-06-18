@@ -3,15 +3,19 @@ package net.adshares.ads.qa.stepdefs;
 import cucumber.api.java.en.Given;
 import cucumber.api.java.en.Then;
 import cucumber.api.java.en.When;
+import net.adshares.ads.qa.data.UserData;
 import net.adshares.ads.qa.data.UserDataProvider;
+import net.adshares.ads.qa.util.AssertReason;
 import net.adshares.ads.qa.util.EscUtils;
 import net.adshares.ads.qa.util.FunctionCaller;
-import net.adshares.ads.qa.data.UserData;
-import org.junit.Assert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.comparesEqualTo;
+import static org.hamcrest.Matchers.not;
 
 /**
  * Cucumber steps definitions for transaction to non-existent user/node tests
@@ -57,9 +61,20 @@ public class NonExistentUserNodeStepDefs {
 
     @Then("^transfer to invalid address is rejected$")
     public void transfer_is_rejected() {
+        final FunctionCaller fc = FunctionCaller.getInstance();
         log.info("Error: \"{}\"", EscUtils.getErrorDescription(lastResp));
-        Assert.assertEquals("Sender balance changed", 0, sender.getExpBalance().compareTo(sender.getStartBalance()));
-        Assert.assertFalse("Transfer to invalid address was accepted", EscUtils.isTransactionAcceptedByNode(lastResp));
+
+        String reason;
+        // check balance
+        reason = new AssertReason.Builder().msg("Sender balance changed.")
+                .req(fc.getLastRequest()).res(lastResp).build();
+        assertThat(reason, fc.getUserAccountBalance(sender), comparesEqualTo(sender.getExpBalance()));
+
+        // check, if transaction was accepted
+        reason = new AssertReason.Builder().msg("Transfer to invalid address was accepted.")
+                .req(fc.getLastRequest()).res(lastResp).build();
+        assertThat(reason, not(EscUtils.isTransactionAcceptedByNode(lastResp)));
+        log.info("Transaction is rejected.");
     }
 
     private void sendOneWrapper(String address) {
@@ -75,7 +90,7 @@ public class NonExistentUserNodeStepDefs {
     }
 
     private String getNonExistentUserAddressInNode() {
-        return "0001-FFFFFFFF-XXXX";
+        return sender.getUserData().getNodeId() + "-FFFFFFFF-XXXX";
     }
 
     private String getUserAddressInNonExistentNode() {
