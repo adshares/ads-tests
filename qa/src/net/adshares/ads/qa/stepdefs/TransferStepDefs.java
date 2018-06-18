@@ -95,8 +95,8 @@ public class TransferStepDefs {
         assertThat("No user with sufficient balance.", txSender, not(equalTo(null)));
     }
 
-    @When("^sender sends ([-]?\\d+(\\.\\d+)?) ADST to receiver[s]?( with message)?$")
-    public void send_adst(String txAmount, String decimalPart, String withMessage) {
+    @When("^sender sends ([-]?\\d+(\\.\\d+)?) ADS to receiver[s]?( with message)?$")
+    public void send_ads(String txAmount, String decimalPart, String withMessage) {
         FunctionCaller fc = FunctionCaller.getInstance();
         UserData sender = txSender.getUserData();
         String senderAddress = sender.getAddress();
@@ -216,7 +216,7 @@ public class TransferStepDefs {
     public void send_all(String included) {
         if ("not".equals(included.trim())) {
             // when fee is not included transfer will not be successful
-            send_adst(txSender.getStartBalance().toString(), null, null);
+            send_ads(txSender.getStartBalance().toString(), null, null);
         } else {
             UserData sender = txSender.getUserData();
             String senderAddress = sender.getAddress();
@@ -249,7 +249,7 @@ public class TransferStepDefs {
             txAmount = txAmount.subtract(minAmount);
             log.info("txAmount post: {}", txAmount);
 
-            send_adst(txAmount.toString(), null, null);
+            send_ads(txAmount.toString(), null, null);
         }
     }
 

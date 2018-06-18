@@ -2,23 +2,23 @@
 @transfer_local
 Feature: Local transfers
 
-  Scenario: Send 100 ADST
+  Scenario: Send 100 ADS
     Given 2 users in same node
-    When sender sends 100 ADST to receiver
+    When sender sends 100 ADS to receiver
     And wait for balance update
     Then receiver balance is as expected (changed by amount)
     And sender balance is as expected (changed by amount and fee)
 
-  Scenario: Send minimum amount of ADST
+  Scenario: Send minimum amount of ADS
     Given 2 users in same node
-    When sender sends 0.00000000001 ADST to receiver
+    When sender sends 0.00000000001 ADS to receiver
     And wait for balance update
     Then receiver balance is as expected (changed by amount)
     And sender balance is as expected (changed by amount and fee)
 
-  Scenario Outline: Send non existing <amount> ADST
+  Scenario Outline: Send non existing <amount> ADS
     Given 2 users in same node
-    When sender sends <amount> ADST to receiver
+    When sender sends <amount> ADS to receiver
     And wait for balance update
     Then receiver balance is as expected
     And sender balance is as expected
@@ -31,7 +31,7 @@ Feature: Local transfers
 
   Scenario: Send many
     Given 3 users in same node
-    When sender sends 100 ADST to receivers
+    When sender sends 100 ADS to receivers
     And wait for balance update
     Then receiver balance is as expected (changed by amount)
     And sender balance is as expected (changed by amount and fee)
@@ -43,7 +43,7 @@ Feature: Local transfers
 
   Scenario: Send transfer with message
     Given 2 users in same node
-    When sender sends 0.00001000000 ADST to receiver with message
+    When sender sends 0.00001000000 ADS to receiver with message
     And wait for balance update
     Then receiver can read message
     And receiver balance is as expected (changed by amount)

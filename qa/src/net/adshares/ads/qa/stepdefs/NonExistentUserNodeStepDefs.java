@@ -35,12 +35,12 @@ public class NonExistentUserNodeStepDefs {
         sender.setStartBalance(balance);
     }
 
-    @When("^sends 0.00000000001 ADST to user in non-existent node$")
+    @When("^sends 0.00000000001 ADS to user in non-existent node$")
     public void sender_sends_to_non_existent_node() {
         sendOneWrapper(getUserAddressInNonExistentNode());
     }
 
-    @When("^sends 0.00000000001 ADST to non-existent user in node$")
+    @When("^sends 0.00000000001 ADS to non-existent user in node$")
     public void sender_sends_to_non_existent_user() {
         sendOneWrapper(getNonExistentUserAddressInNode());
     }
