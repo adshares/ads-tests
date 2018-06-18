@@ -9,11 +9,13 @@ import cucumber.api.java.en.When;
 import net.adshares.ads.qa.data.UserData;
 import net.adshares.ads.qa.data.UserDataProvider;
 import net.adshares.ads.qa.util.*;
-import org.junit.Assert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
 
 public class AccountStepDefs {
 
@@ -50,28 +52,42 @@ public class AccountStepDefs {
 
     @When("^user changes key$")
     public void user_changes_key() {
+        FunctionCaller fc = FunctionCaller.getInstance();
         String resp = FunctionCaller.getInstance().changeAccountKey(userData, PUBLIC_KEY, SIGNATURE);
-
-        Assert.assertTrue("Change key transaction was not accepted by node",
-                EscUtils.isTransactionAcceptedByNode(resp));
-
         JsonObject o = Utils.convertStringToJsonObject(resp);
-        Assert.assertTrue("Incorrect 'result' field",
-                o.has("result") && "PKEY changed".equals(o.get("result").getAsString()));
 
-        // in case of change key: deduct == fee
-        BigDecimal deduct = o.getAsJsonObject("tx").get("deduct").getAsBigDecimal();
+        String reason;
+        // check, if accepted
+        reason = new AssertReason.Builder().msg("Change key transaction was not accepted by node.")
+                .req(fc.getLastRequest()).res(resp).build();
+        assertThat(reason, EscUtils.isTransactionAcceptedByNode(o));
+
+        // check 'result' field
+        String result = o.has("result") ? o.get("result").getAsString() : "null";
+        reason = new AssertReason.Builder().msg("Incorrect 'result' field.")
+                .req(fc.getLastRequest()).res(resp).build();
+        assertThat(reason, result, equalTo("PKEY changed"));
+
+        //check fee
         BigDecimal fee = o.getAsJsonObject("tx").get("fee").getAsBigDecimal();
-        Assert.assertEquals("Invalid deduct computed", 0, deduct.compareTo(fee));
-        Assert.assertEquals("Invalid fee computed", 0, EscConst.CHANGE_ACCOUNT_KEY_FEE.compareTo(fee));
+        reason = new AssertReason.Builder().msg("Invalid fee computed.")
+                .req(fc.getLastRequest()).res(resp).build();
+        assertThat(reason, fee, comparesEqualTo(EscConst.CHANGE_ACCOUNT_KEY_FEE));
+
+        // check deduct - in case of change key: deduct == fee
+        BigDecimal deduct = o.getAsJsonObject("tx").get("deduct").getAsBigDecimal();
+        reason = new AssertReason.Builder().msg("Invalid deduct computed.")
+                .req(fc.getLastRequest()).res(resp).build();
+        assertThat(reason, deduct, comparesEqualTo(fee));
     }
 
     @Then("^he cannot use old key$")
     public void he_cannot_use_old_key() {
         String resp = FunctionCaller.getInstance().getMe(userData);
         JsonObject o = Utils.convertStringToJsonObject(resp);
-        Assert.assertTrue("Transaction with old key wasn't rejected with correct error description.",
-                o.has("error") && "Wrong signature".equals(o.get("error").getAsString()));
+        String errorDesc = o.has("error") ? o.get("error").getAsString() : "null";
+        assertThat("Transaction with old key wasn't rejected with correct error description.",
+                errorDesc, equalTo("Wrong signature"));
     }
 
     @Then("^transaction can be authorised with new key$")
@@ -80,26 +96,32 @@ public class AccountStepDefs {
         String resp = FunctionCaller.getInstance().getMe(userData);
         JsonObject o = Utils.convertStringToJsonObject(resp);
 
-        Assert.assertFalse("Transaction with new key wasn't accepted.", o.has("error"));
+        String reason = new AssertReason.Builder().msg("Transaction with new key wasn't accepted.")
+                .req(FunctionCaller.getInstance().getLastRequest()).res(resp).build();
+        assertThat(reason, not(o.has("error")));
+
         BigDecimal balance = o.getAsJsonObject("account").get("balance").getAsBigDecimal();
         log.info("Balance {}", balance.toPlainString());
     }
 
     @Then("^account change key transaction is present in log$")
     public void account_change_key_transaction_is_present_in_log() {
-        LogChecker lc = new LogChecker(FunctionCaller.getInstance().getLog(userData, lastEventTimestamp));
+        final String resp = FunctionCaller.getInstance().getLog(userData, lastEventTimestamp);
+        LogChecker lc = new LogChecker(resp);
         LogFilter lf = new LogFilter(true);
         lf.addFilter("type", "change_account_key");
         BigDecimal feeFromLog = lc.getBalanceFromLogArray(lf);
         // fee in log is negative, but in doc is positive
-        // change sign of fee in log
+        // change sign of fee from log
         feeFromLog = BigDecimal.ZERO.subtract(feeFromLog);
         log.info("fees in log: {}", feeFromLog.toPlainString());
         log.info("fees in doc: {}", EscConst.CHANGE_ACCOUNT_KEY_FEE.toPlainString());
         log.info("diff:        {}", feeFromLog.subtract(EscConst.CHANGE_ACCOUNT_KEY_FEE).toPlainString());
 
-        Assert.assertEquals("Invalid deduct computed",
-                0, EscConst.CHANGE_ACCOUNT_KEY_FEE.compareTo(feeFromLog));
+        // check fee from log
+        String reason = new AssertReason.Builder().msg("Invalid fee computed.")
+                .req(FunctionCaller.getInstance().getLastRequest()).res(resp).build();
+        assertThat(reason, feeFromLog, comparesEqualTo(EscConst.CHANGE_ACCOUNT_KEY_FEE));
     }
 
     @When("^user creates( remote)? account$")
@@ -111,7 +133,7 @@ public class AccountStepDefs {
         if (isRemote) {
             String userNodeId = userData.getNodeId();
             String nodeId = getDifferentNodeId(userData, userNodeId);
-            Assert.assertNotNull("Not able to find different node id.", nodeId);
+            assertThat("Not able to find different node id.", nodeId, notNullValue());
             // Function create_account takes node parameter in decimal format
             int node = Integer.valueOf(nodeId, 16);
             resp = requestRemoteAccountCreation(userData, node);
@@ -119,30 +141,42 @@ public class AccountStepDefs {
             resp = fc.createAccount(userData);
         }
 
-        Assert.assertTrue("Create account transaction was not accepted by node",
-                EscUtils.isTransactionAcceptedByNode(resp));
-
         JsonObject o = Utils.convertStringToJsonObject(resp);
+        String reason;
+        // check, if accepted
+        reason = new AssertReason.Builder().msg("Create account transaction was not accepted by node.")
+                .req(fc.getLastRequest()).res(resp).build();
+        assertThat(reason, EscUtils.isTransactionAcceptedByNode(o));
+
+        //check fee
         BigDecimal fee = o.getAsJsonObject("tx").get("fee").getAsBigDecimal();
-        BigDecimal deduct = o.getAsJsonObject("tx").get("deduct").getAsBigDecimal();
         BigDecimal expectedFee = EscConst.CREATE_ACCOUNT_LOCAL_FEE;
         if (isRemote) {
             // remote transaction has additional fee for remote node
             expectedFee = expectedFee.add(EscConst.CREATE_ACCOUNT_REMOTE_FEE);
         }
-        Assert.assertEquals("Invalid fee computed", 0, expectedFee.compareTo(fee));
+        reason = new AssertReason.Builder().msg("Invalid fee computed.")
+                .req(fc.getLastRequest()).res(resp).build();
+        assertThat(reason, fee, comparesEqualTo(expectedFee));
+
+        // check deduct - in case of change key: deduct == fee
+        BigDecimal deduct = o.getAsJsonObject("tx").get("deduct").getAsBigDecimal();
         BigDecimal expectedDeduct = expectedFee.add(EscConst.USER_MIN_MASS);
-        Assert.assertEquals("Invalid deduct computed", 0, expectedDeduct.compareTo(deduct));
+        reason = new AssertReason.Builder().msg("Invalid deduct computed.")
+                .req(fc.getLastRequest()).res(resp).build();
+        assertThat(reason, deduct, comparesEqualTo(expectedDeduct));
 
-
+        // check address
         String address;
         if (isRemote) {
             address = getCreatedAccountAddressFromLog();
         } else {
-            Assert.assertTrue("Missing \"new_account\" object in response.", o.has("new_account"));
+            reason = new AssertReason.Builder().msg("Missing 'new_account' object in response.")
+                    .req(fc.getLastRequest()).res(fc.getLastResponse()).build();
+            assertThat(reason, o.has("new_account"));
             address = o.getAsJsonObject("new_account").get("address").getAsString();
         }
-        Assert.assertTrue("Created address is not valid", EscUtils.isValidAccountAddress(address));
+        assertThat("Created address is not valid: " + address, EscUtils.isValidAccountAddress(address));
         createdUserData = UserDataProvider.getInstance().cloneUser(userData, address);
     }
 
@@ -160,15 +194,15 @@ public class AccountStepDefs {
             if (o.has("error")) {
                 String errorDesc = o.get("error").getAsString();
                 log.info("Error occurred: {}", errorDesc);
-                Assert.assertEquals("Unexpected error after account creation.",
-                        EscConst.Error.GET_GLOBAL_USER_FAILED, errorDesc);
+                assertThat("Unexpected error after account creation.", errorDesc,
+                        equalTo(EscConst.Error.GET_GLOBAL_USER_FAILED));
             } else {
                 BigDecimal balance = o.getAsJsonObject("account").get("balance").getAsBigDecimal();
                 log.info("Balance {}", balance.toPlainString());
                 break;
             }
 
-            Assert.assertTrue("Cannot get account info after delay", attempt < attemptMax);
+            assertThat("Cannot get account info after delay.", attempt < attemptMax);
             EscUtils.waitForNextBlock();
         }
     }
@@ -192,13 +226,13 @@ public class AccountStepDefs {
             if (o.has("error")) {
                 String errorDesc = o.get("error").getAsString();
                 log.info("Error occurred: {}", errorDesc);
-                Assert.assertEquals("Unexpected error after account creation.",
-                        EscConst.Error.CREATE_ACCOUNT_BAD_TIMING, errorDesc);
+                assertThat("Unexpected error after account creation.", errorDesc,
+                        equalTo(EscConst.Error.CREATE_ACCOUNT_BAD_TIMING));
             } else {
                 break;
             }
 
-            Assert.assertTrue("Cannot create remote account.", attempt < attemptMax);
+            assertThat("Cannot create remote account.", attempt < attemptMax);
             // remote account creation cannot be requested in first 8 seconds of block,
             // therefore there is delay
             try {
@@ -213,6 +247,7 @@ public class AccountStepDefs {
     private String getCreatedAccountAddressFromLog() {
         String address = null;
 
+        FunctionCaller fc = FunctionCaller.getInstance();
         LogFilter lf = new LogFilter(true);
         lf.addFilter("type", "account_created");
 
@@ -221,16 +256,22 @@ public class AccountStepDefs {
         while (attempt++ < attemptMax) {
             EscUtils.waitForNextBlock();
 
-            LogChecker lc = new LogChecker(FunctionCaller.getInstance().getLog(userData, lastEventTimestamp));
+            String resp = fc.getLog(userData, lastEventTimestamp);
+            LogChecker lc = new LogChecker(resp);
             JsonArray arr = lc.getFilteredLogArray(lf);
             if (arr.size() > 0) {
                 JsonObject accCrObj = arr.get(arr.size() - 1).getAsJsonObject();
-                Assert.assertEquals("Request was not accepted.", "accepted", accCrObj.get("request").getAsString());
+                String requestStatus =
+                        accCrObj.has("request") ? accCrObj.get("request").getAsString() : "null";
+                assertThat("Request was not accepted.", requestStatus, equalTo("accepted"));
                 address = accCrObj.get("address").getAsString();
                 break;
             }
 
-            Assert.assertTrue("Cannot get account address after delay", attempt < attemptMax);
+            String reason = new AssertReason.Builder().msg("Cannot get account address after delay.")
+                    .req(fc.getLastRequest()).res(resp)
+                    .msg("Full log:").msg(fc.getLog(userData)).build();
+            assertThat(reason, attempt < attemptMax);
         }
 
         return address;
