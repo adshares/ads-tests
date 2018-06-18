@@ -402,14 +402,20 @@ public class TransferStepDefs {
             log.info("balanceExpected 2 {} : receiver{}", receiverExpBalance, i);
             txReceiver.setExpBalance(receiverExpBalance);
 
-            AssertReason.Builder ar = new AssertReason.Builder()
-                    .req(fc.getLastRequest()).res(fc.getLastResponse())
-                    .msg("Receiver " + txReceiver.getUserData().getAddress());
 
             if (isChangeExpected) {
-                assertThat(ar.msg("Receiver balance unchanged.").build(), balance, not(comparesEqualTo(txReceiver.getStartBalance())));
+                AssertReason.Builder ar = new AssertReason.Builder()
+                        .req(fc.getLastRequest()).res(fc.getLastResponse())
+                        .msg("Receiver " + txReceiver.getUserData().getAddress())
+                        .msg("Receiver balance unchanged.");
+                assertThat(ar.build(), balance, not(comparesEqualTo(txReceiver.getStartBalance())));
             }
-            assertThat(ar.msg("Receiver balance unexpected.").build(), balance, comparesEqualTo(receiverExpBalance));
+
+            AssertReason.Builder ar = new AssertReason.Builder()
+                    .req(fc.getLastRequest()).res(fc.getLastResponse())
+                    .msg("Receiver " + txReceiver.getUserData().getAddress())
+                    .msg("Receiver balance unexpected.");
+            assertThat(ar.build(), balance, comparesEqualTo(receiverExpBalance));
         }
     }
 
