@@ -9,12 +9,14 @@ import cucumber.api.java.en.When;
 import net.adshares.ads.qa.data.UserData;
 import net.adshares.ads.qa.data.UserDataProvider;
 import net.adshares.ads.qa.util.*;
-import org.junit.Assert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.util.List;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
 
 public class NodeStepDefs {
 
@@ -41,31 +43,41 @@ public class NodeStepDefs {
 
     @When("^user creates node$")
     public void user_creates_account() {
-        String resp = FunctionCaller.getInstance().createNode(userData);
-
-        Assert.assertTrue("Create node transaction was not accepted by node",
-                EscUtils.isTransactionAcceptedByNode(resp));
-
+        final FunctionCaller fc = FunctionCaller.getInstance();
+        String resp = fc.createNode(userData);
         JsonObject o = Utils.convertStringToJsonObject(resp);
-        BigDecimal fee = o.getAsJsonObject("tx").get("fee").getAsBigDecimal();
-        BigDecimal deduct = o.getAsJsonObject("tx").get("deduct").getAsBigDecimal();
-        Assert.assertEquals("Invalid fee computed", 0, EscConst.CREATE_BANK_FEE.compareTo(fee));
-        // expected deduct is equal to expected fee
-        BigDecimal expectedDeduct = EscConst.CREATE_BANK_FEE.add(EscConst.BANK_MIN_UMASS);
-        Assert.assertEquals("Invalid deduct computed", 0, expectedDeduct.compareTo(deduct));
 
+        String reason;
+        // check, if accepted
+        reason = new AssertReason.Builder().msg("Create node transaction was not accepted by node.")
+                .req(fc.getLastRequest()).res(resp).build();
+        assertThat(reason, EscUtils.isTransactionAcceptedByNode(o));
+
+
+        //check fee
+        BigDecimal fee = o.getAsJsonObject("tx").get("fee").getAsBigDecimal();
+        reason = new AssertReason.Builder().msg("Invalid fee computed.")
+                .req(fc.getLastRequest()).res(resp).build();
+        assertThat(reason, fee, comparesEqualTo(EscConst.CREATE_BANK_FEE));
+
+        // check deduct
+        BigDecimal deduct = o.getAsJsonObject("tx").get("deduct").getAsBigDecimal();
+        BigDecimal expectedDeduct = EscConst.CREATE_BANK_FEE.add(EscConst.BANK_MIN_UMASS);
+        reason = new AssertReason.Builder().msg("Invalid deduct computed.")
+                .req(fc.getLastRequest()).res(resp).build();
+        assertThat(reason, deduct, comparesEqualTo(expectedDeduct));
 
         int node = getCreatedNodeOrdinalNumberFromLog();
-        Assert.assertTrue("Incorrect node = " + node, node > 0);
+        assertThat("Incorrect node = " + node, node > 0);
         // convert dec node id to hex
         String address = String.format("%04X", node) + "-00000000-XXXX";
         log.info("Address in created node{}: {}", node, address);
 
-        Assert.assertTrue("Created address is not valid: " + address, EscUtils.isValidAccountAddress(address));
+        assertThat("Created address is not valid: " + address, EscUtils.isValidAccountAddress(address));
         createdUserData = UserDataProvider.getInstance().cloneUser(userData, address);
 
-        FunctionCaller.getInstance().addNodePrivateKey(node, userData.getSecret());
-        FunctionCaller.getInstance().startNode(node);
+        fc.addNodePrivateKey(node, userData.getSecret());
+        fc.startNode(node);
     }
 
     @Then("^node is created$")
@@ -79,7 +91,7 @@ public class NodeStepDefs {
 
         int msid = 0;
         int attempt = 0;
-        int attemptMax = 105;
+        int attemptMax = 100;
         while (attempt++ < attemptMax) {
             String resp = FunctionCaller.getInstance().getBlock(UserDataProvider.getInstance().getUserDataList(1).get(0));
             JsonObject o = Utils.convertStringToJsonObject(resp);
@@ -88,7 +100,8 @@ public class NodeStepDefs {
                 JsonObject nodeEntry = je.getAsJsonObject();
                 if (nodeId.equals(nodeEntry.get("id").getAsString())) {
                     msid = nodeEntry.get("msid").getAsInt();
-                    log.info("msid {}", msid);
+                    log.info("msid: {}", msid);
+                    log.info("attempts: {}", attempt);
                     break;
                 }
             }
@@ -97,7 +110,9 @@ public class NodeStepDefs {
                 break;
             }
 
-            Assert.assertTrue("Node didn't start.", attempt < attemptMax);
+            String reason = new AssertReason.Builder().msg("Node didn't start.")
+                    .req(FunctionCaller.getInstance().getLastRequest()).res(resp).build();
+            assertThat(reason, attempt < attemptMax);
             EscUtils.waitForNextBlock();
         }
         log.info("node_is_created: end");
@@ -105,6 +120,7 @@ public class NodeStepDefs {
     }
 
     private int getCreatedNodeOrdinalNumberFromLog() {
+        final FunctionCaller fc = FunctionCaller.getInstance();
         int nodeId = -1;
 
         LogFilter lf = new LogFilter(true);
@@ -116,16 +132,21 @@ public class NodeStepDefs {
         while (attempt++ < attemptMax) {
             EscUtils.waitForNextBlock();
 
-            LogChecker lc = new LogChecker(FunctionCaller.getInstance().getLog(userData, lastEventTimestamp));
+            String resp = fc.getLog(userData, lastEventTimestamp);
+            LogChecker lc = new LogChecker(resp);
             JsonArray arr = lc.getFilteredLogArray(lf);
             if (arr.size() > 0) {
                 JsonObject accCrObj = arr.get(arr.size() - 1).getAsJsonObject();
-                Assert.assertEquals("Request was not accepted.", "accepted", accCrObj.get("request").getAsString());
+                final String requestStatus = accCrObj.get("request").getAsString();
+                assertThat("Create node request was not accepted.", requestStatus, equalTo("accepted"));
                 nodeId = accCrObj.get("node").getAsInt();
                 break;
             }
 
-            Assert.assertTrue("Cannot get node ordinal after delay", attempt < attemptMax);
+            String reason = new AssertReason.Builder().msg("Cannot get node ordinal after delay.")
+                    .req(fc.getLastRequest()).res(resp)
+                    .msg("Full log:").msg(fc.getLog(userData)).build();
+            assertThat(reason, attempt < attemptMax);
         }
 
         return nodeId;
@@ -141,7 +162,7 @@ public class NodeStepDefs {
                 break;
             }
         }
-        Assert.assertNotNull("Cannot find user, who will change node key", userData);
+        assertThat("Cannot find user, who will change node key.", userData, notNullValue());
     }
 
     @When("^user changes own node key$")
@@ -155,15 +176,23 @@ public class NodeStepDefs {
         // change node key
         String resp = fc.changeNodeKey(userData, PUBLIC_KEY);
         JsonObject o = Utils.convertStringToJsonObject(resp);
-        Assert.assertEquals("Node key was not changed",
-                EscConst.Result.NODE_KEY_CHANGED, o.get("result").getAsString());
 
+        String reason;
+        // check result
+        String result = o.has("result") ? o.get("result").getAsString() : "null";
+        reason = new AssertReason.Builder().msg("Node key was not changed.")
+                .req(fc.getLastRequest()).res(fc.getLastResponse()).build();
+        assertThat(reason, result, equalTo(EscConst.Result.NODE_KEY_CHANGED));
+        //check fee
         BigDecimal fee = o.getAsJsonObject("tx").get("fee").getAsBigDecimal();
+        reason = new AssertReason.Builder().msg("Invalid fee computed.")
+                .req(fc.getLastRequest()).res(fc.getLastResponse()).build();
+        assertThat(reason, fee, comparesEqualTo(EscConst.CHANGE_BANK_KEY_FEE));
+        // check deduct - expected deduct is equal to expected fee
         BigDecimal deduct = o.getAsJsonObject("tx").get("deduct").getAsBigDecimal();
-        Assert.assertEquals("Invalid fee computed", 0, EscConst.CHANGE_BANK_KEY_FEE.compareTo(fee));
-        // expected deduct is equal to expected fee
-        Assert.assertEquals("Invalid deduct computed", 0, EscConst.CHANGE_BANK_KEY_FEE.compareTo(deduct));
-
+        reason = new AssertReason.Builder().msg("Invalid deduct computed.")
+                .req(fc.getLastRequest()).res(fc.getLastResponse()).build();
+        assertThat(reason, deduct, comparesEqualTo(EscConst.CHANGE_BANK_KEY_FEE));
     }
 
     @Then("^node key is changed$")
