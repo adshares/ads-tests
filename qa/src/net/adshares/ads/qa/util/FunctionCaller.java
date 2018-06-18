@@ -18,6 +18,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
+
 public class FunctionCaller {
 
     /**
@@ -219,8 +222,8 @@ public class FunctionCaller {
             if (o.has("error")) {
                 String errorDesc = o.get("error").getAsString();
                 log.info("Error occurred: {}", errorDesc);
-                Assert.assertEquals("Unexpected error after account creation.",
-                        EscConst.Error.GET_BLOCK_INFO_FAILED, errorDesc);
+                assertThat("Unexpected error after account creation.", errorDesc,
+                        equalTo(EscConst.Error.GET_BLOCK_INFO_FAILED));
             } else {
                 JsonArray arr = o.getAsJsonObject("block").getAsJsonArray("nodes");
                 // special node 0 is on the list but it is counted in total
@@ -234,17 +237,19 @@ public class FunctionCaller {
                 }
 
                 if (Integer.min(nodesCount, EscConst.VIP_MAX) != vipNodeCount) {
-                    log.error("nodes count: {}", nodesCount);
-                    log.error("VIP_MAX:     {}", EscConst.VIP_MAX);
-                    log.error("vip count:   {}", vipNodeCount);
-                    Assert.fail("Incorrect number of vip nodes : " + vipNodeCount);
+                    String reason = new AssertReason.Builder().msg("Incorrect number of vip nodes")
+                            .msg("nodes count: " + nodesCount)
+                            .msg("VIP_MAX:     " + EscConst.VIP_MAX)
+                            .msg("vip count:   " + vipNodeCount)
+                            .res(resp).build();
+                    Assert.fail(reason);
                 }
 
                 log.info("getBlock resp in {} attempt", attempt);
                 return resp;
             }
 
-            Assert.assertTrue("Cannot get block info after delay", attempt < attemptMax);
+            assertThat("Cannot get block info after delay", attempt < attemptMax);
 
             try {
                 Thread.sleep(delay);
@@ -253,7 +258,7 @@ public class FunctionCaller {
             }
         }
 
-        Assert.assertNotEquals("Cannot get response", null, resp);
+        assertThat("Cannot get response", resp, notNullValue());
         return resp;
     }
 
@@ -810,10 +815,10 @@ public class FunctionCaller {
             long startTime = System.currentTimeMillis();
             do {
                 resp = callFunction(sysCmdPrefix.concat("/docker/wait-up.php"));
-                Assert.assertFalse("Timeout during docker start",
-                        resp.contains("timeout") || resp.contains("failed")
-                                || (System.currentTimeMillis() - startTime > COMPILATION_TIMEOUT));
-                Assert.assertNotEquals("No response from docker", "", resp);
+                assertThat("Timeout during docker start.",
+                        !(resp.contains("timeout") || resp.contains("failed")
+                                || (System.currentTimeMillis() - startTime > COMPILATION_TIMEOUT)));
+                assertThat("No response from docker.", resp, not(""));
             } while (!resp.contains("started"));
         }
     }

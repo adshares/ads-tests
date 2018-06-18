@@ -17,7 +17,6 @@ import java.util.*;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.comparesEqualTo;
-import static org.hamcrest.Matchers.not;
 
 public class BroadcastStepDefs {
 
@@ -222,7 +221,7 @@ public class BroadcastStepDefs {
             FunctionCaller fc = FunctionCaller.getInstance();
             String reason = new AssertReason.Builder().msg("Message was accepted.")
                     .req(fc.getLastRequest()).res(fc.getLastResponse()).build();
-            assertThat(reason, not(EscUtils.isTransactionAcceptedByNode(o)));
+            assertThat(reason, !EscUtils.isTransactionAcceptedByNode(o));
             log.info("Message was rejected: not accepted by node");
         }
     }

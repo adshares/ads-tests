@@ -100,7 +100,7 @@ public class RetrieveFundsStepDefs {
 
         String reason = new AssertReason.Builder().msg("Retrieve request was accepted.")
                 .req(fc.getLastRequest()).res(lastResp).build();
-        assertThat(reason, not(EscUtils.isTransactionAcceptedByNode(lastResp)));
+        assertThat(reason, !EscUtils.isTransactionAcceptedByNode(lastResp));
     }
 
     @When("^account is not active for RETRIEVE_DELAY time$")

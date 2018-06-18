@@ -98,7 +98,7 @@ public class AccountStepDefs {
 
         String reason = new AssertReason.Builder().msg("Transaction with new key wasn't accepted.")
                 .req(FunctionCaller.getInstance().getLastRequest()).res(resp).build();
-        assertThat(reason, not(o.has("error")));
+        assertThat(reason, !o.has("error"));
 
         BigDecimal balance = o.getAsJsonObject("account").get("balance").getAsBigDecimal();
         log.info("Balance {}", balance.toPlainString());

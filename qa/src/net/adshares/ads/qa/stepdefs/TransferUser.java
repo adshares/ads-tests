@@ -1,8 +1,8 @@
 package net.adshares.ads.qa.stepdefs;
 
 
-import net.adshares.ads.qa.util.LogEventTimestamp;
 import net.adshares.ads.qa.data.UserData;
+import net.adshares.ads.qa.util.LogEventTimestamp;
 
 import java.math.BigDecimal;
 

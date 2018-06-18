@@ -15,7 +15,6 @@ import java.math.BigDecimal;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.comparesEqualTo;
-import static org.hamcrest.Matchers.not;
 
 /**
  * Cucumber steps definitions for transaction to non-existent user/node tests
@@ -73,7 +72,7 @@ public class NonExistentUserNodeStepDefs {
         // check, if transaction was accepted
         reason = new AssertReason.Builder().msg("Transfer to invalid address was accepted.")
                 .req(fc.getLastRequest()).res(lastResp).build();
-        assertThat(reason, not(EscUtils.isTransactionAcceptedByNode(lastResp)));
+        assertThat(reason, !EscUtils.isTransactionAcceptedByNode(lastResp));
         log.info("Transaction is rejected.");
     }
 
