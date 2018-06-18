@@ -4,6 +4,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import org.junit.Assert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,6 +30,10 @@ public class LogChecker {
      */
     public void setResp(String resp) {
         this.jsonResp = convertStringToJsonObject(resp);
+        Assert.assertTrue("Missing 'account' field in log response: " + resp,
+                jsonResp.has("account"));
+        Assert.assertTrue("Missing 'log' field in log response: " + resp,
+                jsonResp.has("log"));
     }
 
     /**
