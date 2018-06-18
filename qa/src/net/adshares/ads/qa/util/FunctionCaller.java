@@ -37,6 +37,10 @@ public class FunctionCaller {
     private static final String DOCKER_ESC_BINARY_FMT = "docker exec -i -w %s adshares_ads_1 esc";
     private static final String ESC_BINARY_OPTS = " -n0 ";
     /**
+     * Regular expression which match when two json responses are returned. It is useful for calls preceded by get_me.
+     */
+    private static final String DOUBLE_RESP_REGEX = "(?s).*}\\s*\\{";
+    /**
      * True, if test are performed on docker.
      * False, if locally.
      */
@@ -52,9 +56,13 @@ public class FunctionCaller {
      * System command is every command, which is not called on esc binary.
      */
     private String sysCmdPrefix;
-
+    /**
+     * Last request processed by esc
+     */
     private String lastRequest;
-
+    /**
+     * Last response from esc
+     */
     private String lastResponse;
 
     private final Logger log = LoggerFactory.getLogger(getClass());
@@ -103,7 +111,7 @@ public class FunctionCaller {
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"broadcast\", \"message\":\"%s\"}') | ", message)
                 .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
         String output = callFunction(command);
-        output = output.replaceFirst(".*}\\s*\\{", "{");
+        output = output.replaceFirst(DOUBLE_RESP_REGEX, "{");
         return output;
     }
 
@@ -120,7 +128,7 @@ public class FunctionCaller {
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"change_account_key\", \"pkey\":\"%s\", \"signature\":\"%s\"}') | ", publicKey, signature)
                 .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
         String output = callFunction(command);
-        output = output.replaceFirst(".*}\\s*\\{", "{");
+        output = output.replaceFirst(DOUBLE_RESP_REGEX, "{");
         return output;
     }
 
@@ -136,7 +144,7 @@ public class FunctionCaller {
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"change_node_key\", \"pkey\":\"%s\"}') | ", publicKey)
                 .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
         String output = callFunction(command);
-        output = output.replaceFirst(".*}\\s*\\{", "{");
+        output = output.replaceFirst(DOUBLE_RESP_REGEX, "{");
         return output;
     }
 
@@ -151,7 +159,7 @@ public class FunctionCaller {
         String command = "(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"create_account\"}') | "
                 .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
         String output = callFunction(command);
-        output = output.replaceFirst(".*}\\s*\\{", "{");
+        output = output.replaceFirst(DOUBLE_RESP_REGEX, "{");
         return output;
     }
 
@@ -167,7 +175,7 @@ public class FunctionCaller {
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"create_account\", \"node\":\"%d\"}') | ", node)
                 .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
         String output = callFunction(command);
-        output = output.replaceFirst(".*}\\s*\\{", "{");
+        output = output.replaceFirst(DOUBLE_RESP_REGEX, "{");
         return output;
     }
 
@@ -182,7 +190,7 @@ public class FunctionCaller {
         String command = "(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"create_node\"}') | "
                 .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
         String output = callFunction(command);
-        output = output.replaceFirst(".*}\\s*\\{", "{");
+        output = output.replaceFirst(DOUBLE_RESP_REGEX, "{");
         return output;
     }
 
@@ -226,7 +234,7 @@ public class FunctionCaller {
                         equalTo(EscConst.Error.GET_BLOCK_INFO_FAILED));
             } else {
                 JsonArray arr = o.getAsJsonObject("block").getAsJsonArray("nodes");
-                // special node 0 is on the list but it is counted in total
+                // special node 0 is on the list but it is shouldn't be counted in total
                 int nodesCount = arr.size() - 1;
                 int vipNodeCount = 0;
                 for (JsonElement je : arr) {
@@ -400,7 +408,7 @@ public class FunctionCaller {
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"retrieve_funds\", \"address\":\"%s\"}') | ", remoteAddress)
                 .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
         String output = callFunction(command);
-        output = output.replaceFirst(".*}\\s*\\{", "{");
+        output = output.replaceFirst(DOUBLE_RESP_REGEX, "{");
         return output;
     }
 
@@ -417,7 +425,7 @@ public class FunctionCaller {
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"send_one\", \"address\":\"%s\", \"amount\":\"%s\"}') | ", receiverAddress, amount)
                 .concat(escBinary).concat(ESC_BINARY_OPTS).concat(sender.getDataAsEscParams());
         String output = callFunction(command);
-        return output.replaceFirst(".*}\\s*\\{", "{");
+        return output.replaceFirst(DOUBLE_RESP_REGEX, "{");
     }
 
     /**
@@ -434,7 +442,7 @@ public class FunctionCaller {
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"send_one\", \"address\":\"%s\", \"amount\":\"%s\", \"message\":\"%s\"}') | ", receiverAddress, amount, message)
                 .concat(escBinary).concat(ESC_BINARY_OPTS).concat(sender.getDataAsEscParams());
         String output = callFunction(command);
-        return output.replaceFirst(".*}\\s*\\{", "{");
+        return output.replaceFirst(DOUBLE_RESP_REGEX, "{");
     }
 
     /**
@@ -454,7 +462,7 @@ public class FunctionCaller {
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"send_many\", \"wires\":%s}') | ", wires)
                 .concat(escBinary).concat(ESC_BINARY_OPTS).concat(sender.getDataAsEscParams());
         String output = callFunction(command);
-        output = output.replaceFirst(".*}\\s*\\{", "{");
+        output = output.replaceFirst(DOUBLE_RESP_REGEX, "{");
         return output;
     }
 
@@ -482,7 +490,7 @@ public class FunctionCaller {
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"send_many\", \"wires\":%s}') | ", wires)
                 .concat(escBinary).concat(ESC_BINARY_OPTS).concat(sender.getDataAsEscParams());
         String output = callFunction(command);
-        output = output.replaceFirst(".*}\\s*\\{", "{");
+        output = output.replaceFirst(DOUBLE_RESP_REGEX, "{");
         return output;
     }
 
@@ -499,7 +507,7 @@ public class FunctionCaller {
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"set_account_status\", \"address\":\"%s\", \"status\":\"%d\"}') | ", address, status)
                 .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
         String output = callFunction(command);
-        output = output.replaceFirst(".*}\\s*\\{", "{");
+        output = output.replaceFirst(DOUBLE_RESP_REGEX, "{");
         return output;
     }
 
@@ -518,7 +526,7 @@ public class FunctionCaller {
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"set_account_status\", \"address\":\"%s\", \"status\":\"%s\"}') | ", address, statusDec)
                 .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
         String output = callFunction(command);
-        output = output.replaceFirst(".*}\\s*\\{", "{");
+        output = output.replaceFirst(DOUBLE_RESP_REGEX, "{");
         return output;
     }
 
@@ -536,7 +544,7 @@ public class FunctionCaller {
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"set_node_status\", \"node\":\"%s\", \"status\":\"%d\"}') | ", node, status)
                 .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
         String output = callFunction(command);
-        output = output.replaceFirst(".*}\\s*\\{", "{");
+        output = output.replaceFirst(DOUBLE_RESP_REGEX, "{");
         return output;
     }
 
@@ -556,7 +564,7 @@ public class FunctionCaller {
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"set_node_status\", \"node\":\"%s\", \"status\":\"%s\"}') | ", node, statusDec)
                 .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
         String output = callFunction(command);
-        output = output.replaceFirst(".*}\\s*\\{", "{");
+        output = output.replaceFirst(DOUBLE_RESP_REGEX, "{");
         return output;
     }
 
@@ -573,7 +581,7 @@ public class FunctionCaller {
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"unset_account_status\", \"address\":\"%s\", \"status\":\"%d\"}') | ", address, status)
                 .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
         String output = callFunction(command);
-        output = output.replaceFirst(".*}\\s*\\{", "{");
+        output = output.replaceFirst(DOUBLE_RESP_REGEX, "{");
         return output;
     }
 
@@ -592,7 +600,7 @@ public class FunctionCaller {
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"unset_account_status\", \"address\":\"%s\", \"status\":\"%s\"}') | ", address, statusDec)
                 .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
         String output = callFunction(command);
-        output = output.replaceFirst(".*}\\s*\\{", "{");
+        output = output.replaceFirst(DOUBLE_RESP_REGEX, "{");
         return output;
     }
 
@@ -610,7 +618,7 @@ public class FunctionCaller {
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"unset_node_status\", \"node\":\"%s\", \"status\":\"%d\"}') | ", node, status)
                 .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
         String output = callFunction(command);
-        output = output.replaceFirst(".*}\\s*\\{", "{");
+        output = output.replaceFirst(DOUBLE_RESP_REGEX, "{");
         return output;
     }
 
@@ -630,12 +638,12 @@ public class FunctionCaller {
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"unset_node_status\", \"node\":\"%s\", \"status\":\"%s\"}') | ", node, statusDec)
                 .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
         String output = callFunction(command);
-        output = output.replaceFirst(".*}\\s*\\{", "{");
+        output = output.replaceFirst(DOUBLE_RESP_REGEX, "{");
         return output;
     }
 
     /**
-     * Calls command in sh shell
+     * Calls command in sh shell.
      *
      * @param cmd command
      * @return stdout response
