@@ -18,6 +18,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
+
 public class FunctionCaller {
 
     /**
@@ -34,6 +37,10 @@ public class FunctionCaller {
     private static final String DOCKER_ESC_BINARY_FMT = "docker exec -i -w %s adshares_ads_1 esc";
     private static final String ESC_BINARY_OPTS = " -n0 ";
     /**
+     * Regular expression which match when two json responses are returned. It is useful for calls preceded by get_me.
+     */
+    private static final String DOUBLE_RESP_REGEX = "(?s).*}\\s*\\{";
+    /**
      * True, if test are performed on docker.
      * False, if locally.
      */
@@ -49,9 +56,13 @@ public class FunctionCaller {
      * System command is every command, which is not called on esc binary.
      */
     private String sysCmdPrefix;
-
+    /**
+     * Last request processed by esc
+     */
     private String lastRequest;
-
+    /**
+     * Last response from esc
+     */
     private String lastResponse;
 
     private final Logger log = LoggerFactory.getLogger(getClass());
@@ -100,7 +111,7 @@ public class FunctionCaller {
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"broadcast\", \"message\":\"%s\"}') | ", message)
                 .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
         String output = callFunction(command);
-        output = output.replaceFirst(".*}\\s*\\{", "{");
+        output = output.replaceFirst(DOUBLE_RESP_REGEX, "{");
         return output;
     }
 
@@ -117,7 +128,7 @@ public class FunctionCaller {
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"change_account_key\", \"pkey\":\"%s\", \"signature\":\"%s\"}') | ", publicKey, signature)
                 .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
         String output = callFunction(command);
-        output = output.replaceFirst(".*}\\s*\\{", "{");
+        output = output.replaceFirst(DOUBLE_RESP_REGEX, "{");
         return output;
     }
 
@@ -133,7 +144,7 @@ public class FunctionCaller {
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"change_node_key\", \"pkey\":\"%s\"}') | ", publicKey)
                 .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
         String output = callFunction(command);
-        output = output.replaceFirst(".*}\\s*\\{", "{");
+        output = output.replaceFirst(DOUBLE_RESP_REGEX, "{");
         return output;
     }
 
@@ -148,7 +159,7 @@ public class FunctionCaller {
         String command = "(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"create_account\"}') | "
                 .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
         String output = callFunction(command);
-        output = output.replaceFirst(".*}\\s*\\{", "{");
+        output = output.replaceFirst(DOUBLE_RESP_REGEX, "{");
         return output;
     }
 
@@ -164,7 +175,7 @@ public class FunctionCaller {
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"create_account\", \"node\":\"%d\"}') | ", node)
                 .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
         String output = callFunction(command);
-        output = output.replaceFirst(".*}\\s*\\{", "{");
+        output = output.replaceFirst(DOUBLE_RESP_REGEX, "{");
         return output;
     }
 
@@ -179,7 +190,7 @@ public class FunctionCaller {
         String command = "(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"create_node\"}') | "
                 .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
         String output = callFunction(command);
-        output = output.replaceFirst(".*}\\s*\\{", "{");
+        output = output.replaceFirst(DOUBLE_RESP_REGEX, "{");
         return output;
     }
 
@@ -219,11 +230,11 @@ public class FunctionCaller {
             if (o.has("error")) {
                 String errorDesc = o.get("error").getAsString();
                 log.info("Error occurred: {}", errorDesc);
-                Assert.assertEquals("Unexpected error after account creation.",
-                        EscConst.Error.GET_BLOCK_INFO_FAILED, errorDesc);
+                assertThat("Unexpected error after account creation.", errorDesc,
+                        equalTo(EscConst.Error.GET_BLOCK_INFO_FAILED));
             } else {
                 JsonArray arr = o.getAsJsonObject("block").getAsJsonArray("nodes");
-                // special node 0 is on the list but it is counted in total
+                // special node 0 is on the list but it is shouldn't be counted in total
                 int nodesCount = arr.size() - 1;
                 int vipNodeCount = 0;
                 for (JsonElement je : arr) {
@@ -234,17 +245,19 @@ public class FunctionCaller {
                 }
 
                 if (Integer.min(nodesCount, EscConst.VIP_MAX) != vipNodeCount) {
-                    log.error("nodes count: {}", nodesCount);
-                    log.error("VIP_MAX:     {}", EscConst.VIP_MAX);
-                    log.error("vip count:   {}", vipNodeCount);
-                    Assert.fail("Incorrect number of vip nodes : " + vipNodeCount);
+                    String reason = new AssertReason.Builder().msg("Incorrect number of vip nodes")
+                            .msg("nodes count: " + nodesCount)
+                            .msg("VIP_MAX:     " + EscConst.VIP_MAX)
+                            .msg("vip count:   " + vipNodeCount)
+                            .res(resp).build();
+                    Assert.fail(reason);
                 }
 
                 log.info("getBlock resp in {} attempt", attempt);
                 return resp;
             }
 
-            Assert.assertTrue("Cannot get block info after delay", attempt < attemptMax);
+            assertThat("Cannot get block info after delay", attempt < attemptMax);
 
             try {
                 Thread.sleep(delay);
@@ -253,7 +266,7 @@ public class FunctionCaller {
             }
         }
 
-        Assert.assertNotEquals("Cannot get response", null, resp);
+        assertThat("Cannot get response", resp, notNullValue());
         return resp;
     }
 
@@ -395,7 +408,7 @@ public class FunctionCaller {
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"retrieve_funds\", \"address\":\"%s\"}') | ", remoteAddress)
                 .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
         String output = callFunction(command);
-        output = output.replaceFirst(".*}\\s*\\{", "{");
+        output = output.replaceFirst(DOUBLE_RESP_REGEX, "{");
         return output;
     }
 
@@ -412,7 +425,7 @@ public class FunctionCaller {
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"send_one\", \"address\":\"%s\", \"amount\":\"%s\"}') | ", receiverAddress, amount)
                 .concat(escBinary).concat(ESC_BINARY_OPTS).concat(sender.getDataAsEscParams());
         String output = callFunction(command);
-        return output.replaceFirst(".*}\\s*\\{", "{");
+        return output.replaceFirst(DOUBLE_RESP_REGEX, "{");
     }
 
     /**
@@ -429,7 +442,7 @@ public class FunctionCaller {
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"send_one\", \"address\":\"%s\", \"amount\":\"%s\", \"message\":\"%s\"}') | ", receiverAddress, amount, message)
                 .concat(escBinary).concat(ESC_BINARY_OPTS).concat(sender.getDataAsEscParams());
         String output = callFunction(command);
-        return output.replaceFirst(".*}\\s*\\{", "{");
+        return output.replaceFirst(DOUBLE_RESP_REGEX, "{");
     }
 
     /**
@@ -449,7 +462,7 @@ public class FunctionCaller {
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"send_many\", \"wires\":%s}') | ", wires)
                 .concat(escBinary).concat(ESC_BINARY_OPTS).concat(sender.getDataAsEscParams());
         String output = callFunction(command);
-        output = output.replaceFirst(".*}\\s*\\{", "{");
+        output = output.replaceFirst(DOUBLE_RESP_REGEX, "{");
         return output;
     }
 
@@ -477,7 +490,7 @@ public class FunctionCaller {
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"send_many\", \"wires\":%s}') | ", wires)
                 .concat(escBinary).concat(ESC_BINARY_OPTS).concat(sender.getDataAsEscParams());
         String output = callFunction(command);
-        output = output.replaceFirst(".*}\\s*\\{", "{");
+        output = output.replaceFirst(DOUBLE_RESP_REGEX, "{");
         return output;
     }
 
@@ -494,7 +507,7 @@ public class FunctionCaller {
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"set_account_status\", \"address\":\"%s\", \"status\":\"%d\"}') | ", address, status)
                 .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
         String output = callFunction(command);
-        output = output.replaceFirst(".*}\\s*\\{", "{");
+        output = output.replaceFirst(DOUBLE_RESP_REGEX, "{");
         return output;
     }
 
@@ -513,7 +526,7 @@ public class FunctionCaller {
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"set_account_status\", \"address\":\"%s\", \"status\":\"%s\"}') | ", address, statusDec)
                 .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
         String output = callFunction(command);
-        output = output.replaceFirst(".*}\\s*\\{", "{");
+        output = output.replaceFirst(DOUBLE_RESP_REGEX, "{");
         return output;
     }
 
@@ -531,7 +544,7 @@ public class FunctionCaller {
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"set_node_status\", \"node\":\"%s\", \"status\":\"%d\"}') | ", node, status)
                 .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
         String output = callFunction(command);
-        output = output.replaceFirst(".*}\\s*\\{", "{");
+        output = output.replaceFirst(DOUBLE_RESP_REGEX, "{");
         return output;
     }
 
@@ -551,7 +564,7 @@ public class FunctionCaller {
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"set_node_status\", \"node\":\"%s\", \"status\":\"%s\"}') | ", node, statusDec)
                 .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
         String output = callFunction(command);
-        output = output.replaceFirst(".*}\\s*\\{", "{");
+        output = output.replaceFirst(DOUBLE_RESP_REGEX, "{");
         return output;
     }
 
@@ -568,7 +581,7 @@ public class FunctionCaller {
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"unset_account_status\", \"address\":\"%s\", \"status\":\"%d\"}') | ", address, status)
                 .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
         String output = callFunction(command);
-        output = output.replaceFirst(".*}\\s*\\{", "{");
+        output = output.replaceFirst(DOUBLE_RESP_REGEX, "{");
         return output;
     }
 
@@ -587,7 +600,7 @@ public class FunctionCaller {
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"unset_account_status\", \"address\":\"%s\", \"status\":\"%s\"}') | ", address, statusDec)
                 .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
         String output = callFunction(command);
-        output = output.replaceFirst(".*}\\s*\\{", "{");
+        output = output.replaceFirst(DOUBLE_RESP_REGEX, "{");
         return output;
     }
 
@@ -605,7 +618,7 @@ public class FunctionCaller {
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"unset_node_status\", \"node\":\"%s\", \"status\":\"%d\"}') | ", node, status)
                 .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
         String output = callFunction(command);
-        output = output.replaceFirst(".*}\\s*\\{", "{");
+        output = output.replaceFirst(DOUBLE_RESP_REGEX, "{");
         return output;
     }
 
@@ -625,12 +638,12 @@ public class FunctionCaller {
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"unset_node_status\", \"node\":\"%s\", \"status\":\"%s\"}') | ", node, statusDec)
                 .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
         String output = callFunction(command);
-        output = output.replaceFirst(".*}\\s*\\{", "{");
+        output = output.replaceFirst(DOUBLE_RESP_REGEX, "{");
         return output;
     }
 
     /**
-     * Calls command in sh shell
+     * Calls command in sh shell.
      *
      * @param cmd command
      * @return stdout response
@@ -747,8 +760,13 @@ public class FunctionCaller {
      * @param privateKey private key
      */
     public void addNodePrivateKey(int node, String privateKey) {
-        String keyFileName = String.format("%s/node%d/key/key.txt", dataDir, node);
+        String keyFileName = String.format("%1$s/node%2$d/key/key.txt", dataDir, node);
         String keyFileContent = callFunction(sysCmdPrefix.concat("cat " + keyFileName));
+        if ("".equals(keyFileContent)) {
+            // if node in dec format is not available, check new hex format
+            keyFileName = String.format("%1$s/node%2$04X/key/key.txt", dataDir, node);
+            keyFileContent = callFunction(sysCmdPrefix.concat("cat " + keyFileName));
+        }
 
         if ("".equals(keyFileContent)) {
             // empty content means that whole directory must be created
@@ -768,10 +786,16 @@ public class FunctionCaller {
      * @param node node ordinal number (decimal)
      */
     public void startNode(int node) {
-        String path = String.format("/ads-data/node%d/", node);
+        String path = String.format("%1$s/node%2$04X/", dataDir, node);
 
         // create options.cfg file
-        String optFileContent = callFunction(sysCmdPrefix.concat("cat /ads-data/node1/options.cfg"));
+        String optFileContent = callFunction(sysCmdPrefix.concat(String.format("cat %s/node0001/options.cfg", dataDir)));
+        if ("".equals(optFileContent)) {
+            // node number should be in hex format, but to keep compatibility it is also checked in dec format
+            optFileContent = callFunction(sysCmdPrefix.concat(String.format("cat %s/node1/options.cfg", dataDir)));
+        }
+        assertThat("Missing node0001 options.cfg.", !"".equals(optFileContent));
+
         String[] arr = optFileContent.split("\n");
         //svid
         arr[0] = "svid=" + node;
@@ -810,10 +834,10 @@ public class FunctionCaller {
             long startTime = System.currentTimeMillis();
             do {
                 resp = callFunction(sysCmdPrefix.concat("/docker/wait-up.php"));
-                Assert.assertFalse("Timeout during docker start",
-                        resp.contains("timeout") || resp.contains("failed")
-                                || (System.currentTimeMillis() - startTime > COMPILATION_TIMEOUT));
-                Assert.assertNotEquals("No response from docker", "", resp);
+                assertThat("Timeout during docker start.",
+                        !(resp.contains("timeout") || resp.contains("failed")
+                                || (System.currentTimeMillis() - startTime > COMPILATION_TIMEOUT)));
+                assertThat("No response from docker.", resp, not(""));
             } while (!resp.contains("started"));
         }
     }

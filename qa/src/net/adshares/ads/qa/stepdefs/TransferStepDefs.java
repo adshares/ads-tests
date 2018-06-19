@@ -54,7 +54,7 @@ public class TransferStepDefs {
                 maxBalanceIndex = i;
             }
         }
-        assertThat("No user with positive balance.", maxBalanceIndex, not(equalTo(-1)));
+        assertThat("No user with positive balance.", maxBalanceIndex != -1);
 
         LogChecker lc = new LogChecker();
         txReceivers = new ArrayList<>();
@@ -92,7 +92,7 @@ public class TransferStepDefs {
             }
         }
 
-        assertThat("No user with sufficient balance.", txSender, not(equalTo(null)));
+        assertThat("No user with sufficient balance.", txSender, notNullValue());
     }
 
     @When("^sender sends ([-]?\\d+(\\.\\d+)?) ADS to receiver[s]?( with message)?$")
@@ -197,7 +197,7 @@ public class TransferStepDefs {
 
         } else {
             String reason = assertReasonBuilder.msg("Transfer was accepted by node.").build();
-            assertThat(reason, not(isTransactionAccepted));
+            assertThat(reason, !isTransactionAccepted);
 
             log.info("Cannot transfer funds");
             log.info("\tbalance: {}", senderBalance);
@@ -402,14 +402,20 @@ public class TransferStepDefs {
             log.info("balanceExpected 2 {} : receiver{}", receiverExpBalance, i);
             txReceiver.setExpBalance(receiverExpBalance);
 
-            AssertReason.Builder ar = new AssertReason.Builder()
-                    .req(fc.getLastRequest()).res(fc.getLastResponse())
-                    .msg("Receiver " + txReceiver.getUserData().getAddress());
 
             if (isChangeExpected) {
-                assertThat(ar.msg("Receiver balance unchanged.").build(), balance, not(comparesEqualTo(txReceiver.getStartBalance())));
+                AssertReason.Builder ar = new AssertReason.Builder()
+                        .req(fc.getLastRequest()).res(fc.getLastResponse())
+                        .msg("Receiver " + txReceiver.getUserData().getAddress())
+                        .msg("Receiver balance unchanged.");
+                assertThat(ar.build(), balance, not(comparesEqualTo(txReceiver.getStartBalance())));
             }
-            assertThat(ar.msg("Receiver balance unexpected.").build(), balance, comparesEqualTo(receiverExpBalance));
+
+            AssertReason.Builder ar = new AssertReason.Builder()
+                    .req(fc.getLastRequest()).res(fc.getLastResponse())
+                    .msg("Receiver " + txReceiver.getUserData().getAddress())
+                    .msg("Receiver balance unexpected.");
+            assertThat(ar.build(), balance, comparesEqualTo(receiverExpBalance));
         }
     }
 
@@ -442,8 +448,11 @@ public class TransferStepDefs {
 
         String resp = FunctionCaller.getInstance().sendMany(txSender.getUserData(), recList);
         JsonObject o = Utils.convertStringToJsonObject(resp);
+
         String errorDesc = o.has("error") ? o.get("error").getAsString() : "null";
-        assertThat(errorDesc, equalTo(EscConst.Error.DUPLICATED_TARGET));
+        String reason = new AssertReason.Builder().req(FunctionCaller.getInstance().getLastRequest()).res(resp)
+                .msg("Unexpected error for send multiple transfers to single receiver.").build();
+        assertThat(reason, errorDesc, equalTo(EscConst.Error.DUPLICATED_TARGET));
 
         isTransactionAccepted = EscUtils.isTransactionAcceptedByNode(o);
     }
@@ -454,8 +463,11 @@ public class TransferStepDefs {
     public void sender_sends_transfer_incorrect_msg_length() {
         String resp = FunctionCaller.getInstance().sendOne(txSender.getUserData(), "00FF-00000000-XXXX", "0.00000000001", "ABCD");
         JsonObject o = Utils.convertStringToJsonObject(resp);
+
         String errorDesc = o.has("error") ? o.get("error").getAsString() : "null";
-        assertThat(errorDesc, equalTo(EscConst.Error.COMMAND_PARSE_ERROR));
+        String reason = new AssertReason.Builder().req(FunctionCaller.getInstance().getLastRequest()).res(resp)
+                .msg("Unexpected error for incorrect message length.").build();
+        assertThat(reason, errorDesc, equalTo(EscConst.Error.COMMAND_PARSE_ERROR));
 
         isTransactionAccepted = EscUtils.isTransactionAcceptedByNode(o);
     }
@@ -467,7 +479,7 @@ public class TransferStepDefs {
             String reason = new AssertReason.Builder().msg("Transaction is accepted.")
                     .req(fc.getLastRequest()).res(fc.getLastResponse()).build();
 
-            assertThat(reason, isTransactionAccepted, equalTo(false));
+            assertThat(reason, !isTransactionAccepted);
         }
     }
 

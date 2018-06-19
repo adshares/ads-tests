@@ -5,15 +5,17 @@ import com.google.gson.JsonObject;
 import cucumber.api.java.en.Given;
 import cucumber.api.java.en.Then;
 import cucumber.api.java.en.When;
+import net.adshares.ads.qa.data.UserData;
 import net.adshares.ads.qa.data.UserDataProvider;
 import net.adshares.ads.qa.util.*;
-import net.adshares.ads.qa.data.UserData;
-import org.junit.Assert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.util.List;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
 
 public class RetrieveFundsStepDefs {
 
@@ -48,7 +50,7 @@ public class RetrieveFundsStepDefs {
                 inactiveUser.setUserData(u);
             }
         }
-        Assert.assertNotNull("Cannot find user in the same node", inactiveUser);
+        assertThat("Cannot find user in the same node", inactiveUser, notNullValue());
         inactiveUser.setStartBalance(fc.getUserAccountBalance(inactiveUser.getUserData()));
     }
 
@@ -67,35 +69,38 @@ public class RetrieveFundsStepDefs {
                 }
             }
         }
-        Assert.assertNotNull(String.format("Cannot find %s user in the different node", type), inactiveUser);
+        assertThat(String.format("Cannot find %s user in the different node", type), inactiveUser, notNullValue());
         inactiveUser.setStartBalance(fc.getUserAccountBalance(inactiveUser.getUserData()));
     }
 
     @When("^user requests retrieve$")
     public void user_requests_retrieve() {
         FunctionCaller fc = FunctionCaller.getInstance();
-
         lastResp = fc.retrieveFunds(retriever.getUserData(), inactiveUser.getUserData().getAddress());
 
-        Assert.assertTrue("Retrieve request not accepted", EscUtils.isTransactionAcceptedByNode(lastResp));
+        String reason = new AssertReason.Builder().msg("Retrieve request not accepted.")
+                .req(fc.getLastRequest()).res(lastResp).build();
+        assertThat(reason, EscUtils.isTransactionAcceptedByNode(lastResp));
     }
 
     @When("^user retrieves funds$")
     public void user_retrieves_funds() {
         FunctionCaller fc = FunctionCaller.getInstance();
-
         lastResp = fc.retrieveFunds(retriever.getUserData(), inactiveUser.getUserData().getAddress());
 
-        Assert.assertTrue("Retrieve funds not accepted", EscUtils.isTransactionAcceptedByNode(lastResp));
+        String reason = new AssertReason.Builder().msg("Retrieve funds not accepted.")
+                .req(fc.getLastRequest()).res(lastResp).build();
+        assertThat(reason, EscUtils.isTransactionAcceptedByNode(lastResp));
     }
 
     @When("^user requests retrieve but it is not accepted$")
     public void user_requests_retrieve_not_accepted() {
         FunctionCaller fc = FunctionCaller.getInstance();
-
         lastResp = fc.retrieveFunds(retriever.getUserData(), inactiveUser.getUserData().getAddress());
 
-        Assert.assertFalse("Retrieve request was accepted", EscUtils.isTransactionAcceptedByNode(lastResp));
+        String reason = new AssertReason.Builder().msg("Retrieve request was accepted.")
+                .req(fc.getLastRequest()).res(lastResp).build();
+        assertThat(reason, !EscUtils.isTransactionAcceptedByNode(lastResp));
     }
 
     @When("^account is not active for RETRIEVE_DELAY time$")
@@ -103,7 +108,7 @@ public class RetrieveFundsStepDefs {
         // before retrieval account must be inactive for time of:
         // EscConst.BLOCK_DIVIDEND * EscConst.BLOCK_PERIOD (in seconds)
         try {
-            Thread.sleep(1000L * EscConst.BLOCK_DIVIDEND * EscConst.BLOCK_PERIOD);
+            Thread.sleep(EscConst.BLOCK_PERIOD_MS * EscConst.BLOCK_DIVIDEND);
         } catch (InterruptedException e) {
             log.error("Sleep interrupted");
             log.error(e.toString());
@@ -118,7 +123,7 @@ public class RetrieveFundsStepDefs {
         int loopCnt = 0;
         int loopCntMax = 5;
         do {
-            Assert.assertTrue(String.format("Account was not empty in time of %d blocks", loopCntMax), loopCnt < loopCntMax);
+            assertThat(String.format("Account was not empty in time of %d blocks", loopCntMax), loopCnt < loopCntMax);
             try {
                 Thread.sleep(EscConst.BLOCK_PERIOD_MS);
             } catch (InterruptedException e) {
@@ -128,9 +133,10 @@ public class RetrieveFundsStepDefs {
         } while (BigDecimal.ZERO.compareTo(fc.getUserAccountBalance(inactiveUser)) != 0);
         log.info("Account was empty after {} block(s)", loopCnt);
 
-        Assert.assertTrue("Inactive account balance is different than sum of logged events",
-                new LogChecker(fc.getLog(inactiveUser.getUserData())).isBalanceFromObjectEqualToArray());
-
+        String resp = fc.getLog(inactiveUser.getUserData());
+        String reason = new AssertReason.Builder().msg("Inactive account balance is different than sum of logged events.")
+                .req(fc.getLastRequest()).res(resp).build();
+        assertThat(reason, new LogChecker(resp).isBalanceFromObjectEqualToArray());
     }
 
     @Then("^retriever account is increased by retrieved amount$")
@@ -139,8 +145,11 @@ public class RetrieveFundsStepDefs {
 
         UserData retrieverData = retriever.getUserData();
         LogChecker lc = new LogChecker();
-        lc.setResp(fc.getLog(retrieverData));
-        Assert.assertTrue("Balance from log is different than that from object", lc.isBalanceFromObjectEqualToArray());
+        String resp = fc.getLog(retrieverData);
+        lc.setResp(resp);
+        String reason = new AssertReason.Builder().msg("Balance from log is different than that from object")
+                .req(fc.getLastRequest()).res(resp).build();
+        assertThat(reason, lc.isBalanceFromObjectEqualToArray());
 
         lastResp = fc.getLog(retrieverData, retriever.getLastEventTimestamp());
         lc.setResp(lastResp);
@@ -166,7 +175,7 @@ public class RetrieveFundsStepDefs {
                 case 0:
                 case 2:
                     senderFee = o.get("sender_fee").getAsBigDecimal();
-                    Assert.assertEquals("Invalid fee for retrieve_funds.", EscConst.RETRIEVE_REQUEST_FEE, senderFee);
+                    assertThat("Invalid fee for retrieve_funds.", senderFee, comparesEqualTo(EscConst.RETRIEVE_REQUEST_FEE));
                     break;
                 case 1:
                     // 1st call confirm
@@ -183,7 +192,7 @@ public class RetrieveFundsStepDefs {
                     log.info("senderFee:          {}", senderFee.toPlainString());
                     log.info("senderFeeExpected2: {}", senderFeeExpected.toPlainString());
                     log.info("diff:               {}", senderFee.subtract(senderFeeExpected).toPlainString());
-                    Assert.assertEquals("Unexpected fee for retrieve funds.", senderFeeExpected, senderFee);
+                    assertThat("Unexpected fee for retrieve funds.", senderFee, comparesEqualTo(senderFeeExpected));
                     break;
             }
         }
@@ -191,12 +200,18 @@ public class RetrieveFundsStepDefs {
         BigDecimal startBalance = retriever.getStartBalance();
         BigDecimal balance = lc.getBalanceFromAccountObject();
 
-        log.info("retriever Start Balance: {}", startBalance);
-        log.info("log Retrieve Events:     {}", balanceRetrieveEvents);
-        log.info("log Other Events:        {}", balanceOtherEvents);
-        log.info("retriever End Balance:   {}", balance);
+        reason = new AssertReason.Builder().msg("Unexpected balance after retrieve funds.")
+                .msg("Start Balance:   " + startBalance.toPlainString())
+                .msg("Retrieve Events: " + balanceRetrieveEvents.toPlainString())
+                .msg("Other Events:    " + balanceOtherEvents.toPlainString())
+                .msg("End Balance:     " + balance.toPlainString()).build();
+        assertThat(reason, balance,
+                comparesEqualTo(startBalance.add(balanceRetrieveEvents).add(balanceOtherEvents)));
 
-        Assert.assertEquals("Unexpected balance after retrieve funds.",
-                startBalance.add(balanceRetrieveEvents).add(balanceOtherEvents), balance);
+        log.info("retriever Start Balance: {}", startBalance.toPlainString());
+        log.info("log Retrieve Events:     {}", balanceRetrieveEvents.toPlainString());
+        log.info("log Other Events:        {}", balanceOtherEvents.toPlainString());
+        log.info("retriever End Balance:   {}", balance.toPlainString());
+
     }
 }

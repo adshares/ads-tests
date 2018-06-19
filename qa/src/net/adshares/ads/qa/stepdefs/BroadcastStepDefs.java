@@ -5,19 +5,18 @@ import com.google.gson.JsonObject;
 import cucumber.api.java.en.Given;
 import cucumber.api.java.en.Then;
 import cucumber.api.java.en.When;
-import net.adshares.ads.qa.data.UserDataProvider;
-import net.adshares.ads.qa.util.EscConst;
-import net.adshares.ads.qa.util.EscUtils;
-import net.adshares.ads.qa.util.FunctionCaller;
-import net.adshares.ads.qa.util.Utils;
 import net.adshares.ads.qa.data.UserData;
+import net.adshares.ads.qa.data.UserDataProvider;
+import net.adshares.ads.qa.util.*;
 import org.junit.Assert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.xml.bind.DatatypeConverter;
 import java.math.BigDecimal;
 import java.util.*;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.comparesEqualTo;
 
 public class BroadcastStepDefs {
 
@@ -26,7 +25,6 @@ public class BroadcastStepDefs {
     private List<UserData> userDataList;
     private Set<BroadcastMessageData> bmdSet;
     private String lastResp;
-
 
 
     @Given("^set of users$")
@@ -78,8 +76,9 @@ public class BroadcastStepDefs {
         BigDecimal feeExpected = getBroadcastFee(message);
 
         String resp = fc.broadcast(userData, message);
-        Assert.assertTrue("Broadcast transaction was not accepted by node.",
-                EscUtils.isTransactionAcceptedByNode(resp));
+        AssertReason.Builder ar = new AssertReason.Builder().msg("Broadcast transaction was not accepted by node.")
+                .req(fc.getLastRequest()).res(fc.getLastResponse());
+        assertThat(ar.build(), EscUtils.isTransactionAcceptedByNode(resp));
 
         JsonObject o = Utils.convertStringToJsonObject(resp);
         BigDecimal fee = o.getAsJsonObject("tx").get("fee").getAsBigDecimal();
@@ -93,8 +92,15 @@ public class BroadcastStepDefs {
         log.info("feeExpected: {}", feeExpected.toPlainString());
         log.info("diff:        {}", feeExpected.subtract(fee).toPlainString());
 
-        Assert.assertEquals("Deduct is not equal to fee.", deduct, fee);
-        Assert.assertEquals("Unexpected fee for broadcast message.", feeExpected, fee);
+        String reason;
+
+        reason = new AssertReason.Builder().msg("Deduct is not equal to fee.")
+                .req(fc.getLastRequest()).res(fc.getLastResponse()).build();
+        assertThat(reason, deduct, comparesEqualTo(fee));
+
+        reason = new AssertReason.Builder().msg("Unexpected fee for broadcast message.")
+                .req(fc.getLastRequest()).res(fc.getLastResponse()).build();
+        assertThat(reason, fee, comparesEqualTo(feeExpected));
 
         return new BroadcastMessageData(message, blockTime);
     }
@@ -142,19 +148,18 @@ public class BroadcastStepDefs {
                         log.warn("get_broadcast error: {}", err);
 
                         if (EscConst.Error.BROADCAST_NOT_READY.equals(err)) {
-                            Assert.assertTrue("Broadcast wasn't prepared in expected time.",
-                                    delay < delayMax);
+                            Assert.assertTrue("Broadcast wasn't prepared in expected time.", delay < delayMax);
                             log.info("wait another block");
                             waitForBlock();
                             delay++;
                         } else if (EscConst.Error.BROADCAST_NO_FILE_TO_SEND.equals(err)) {
                             Assert.assertTrue("Broadcast message wasn't found in expected blocks.",
                                     nextBlockCheckAttempt < nextBlockCheckAttemptMax);
-                            log.info("try check next block");
+                            log.info("check next block (v1)");
                             blockTime = EscUtils.getNextBlock(blockTime);
                             nextBlockCheckAttempt++;
                         } else {
-                            Assert.fail("Unexpected error message.");
+                            Assert.fail("Unexpected error message: " + err);
                         }
                     } else {
                         JsonArray broadcastArr = o.getAsJsonArray("broadcast");
@@ -185,7 +190,7 @@ public class BroadcastStepDefs {
                             // therefore next block must be checked
                             Assert.assertTrue("Broadcast message wasn't found in further blocks.",
                                     nextBlockCheckAttempt < nextBlockCheckAttemptMax);
-                            log.info("try next block");
+                            log.info("check next block (v2)");
                             blockTime = EscUtils.getNextBlock(blockTime);
                             nextBlockCheckAttempt++;
                         }
@@ -213,7 +218,10 @@ public class BroadcastStepDefs {
             String err = o.get("error").getAsString();
             log.info("Message was rejected with error: {}", err);
         } else {
-            Assert.assertFalse("Message was accepted.", EscUtils.isTransactionAcceptedByNode(lastResp));
+            FunctionCaller fc = FunctionCaller.getInstance();
+            String reason = new AssertReason.Builder().msg("Message was accepted.")
+                    .req(fc.getLastRequest()).res(fc.getLastResponse()).build();
+            assertThat(reason, !EscUtils.isTransactionAcceptedByNode(o));
             log.info("Message was rejected: not accepted by node");
         }
     }
@@ -227,7 +235,7 @@ public class BroadcastStepDefs {
     private BigDecimal getBroadcastFee(String message) {
         int len = message.length();
 
-        Assert.assertEquals("Not even length of message. Current length = " + len, 0, len % 2);
+        assertThat("Not even length of message. Current length = " + len, len % 2 == 0);
         int sizeBytes = len / 2;
 
         BigDecimal fee = EscConst.MIN_TX_FEE;

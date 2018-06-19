@@ -8,18 +8,16 @@ import cucumber.api.java.en.Then;
 import cucumber.api.java.en.When;
 import net.adshares.ads.qa.data.UserData;
 import net.adshares.ads.qa.data.UserDataProvider;
-import net.adshares.ads.qa.util.EscConst;
-import net.adshares.ads.qa.util.EscUtils;
-import net.adshares.ads.qa.util.FunctionCaller;
-import net.adshares.ads.qa.util.Utils;
+import net.adshares.ads.qa.util.*;
 import org.junit.Assert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
 
 public class StatusStepDefs {
 
@@ -34,13 +32,17 @@ public class StatusStepDefs {
      */
     private String address;
     /**
+     * List of "pair" user-node
+     */
+    private List<ChangeNodePair> chgNodePairList;
+    /**
      * Set of bits, which was successfully changed (set/reset)
      */
     private Set<Integer> successfullyChangedBitsSet;
 
     private boolean isTransactionAccepted;
 
-    @Given("^(main|regular) account user, who wants to change (own|local|remote) status$")
+    @Given("^(main|regular) account user, who wants to change (own|local|remote) account status$")
     public void user_who_wants_to_change_status(String accountType, String otherAccountType) {
 
         boolean isMain = "main".equals(accountType);
@@ -80,53 +82,68 @@ public class StatusStepDefs {
             }
         }
 
-        Assert.assertTrue("Cannot find suitable data", isDataFound);
+        assertThat(String.format("Cannot find suitable data (for accountType=<%1$s>, otherAccountType=<%2$s>).",
+                accountType, otherAccountType), isDataFound);
     }
 
-    @Given("^(main|regular) account user, who wants to change (own|remote) node status$")
+    @Given("^(vip|main|regular) account user, who wants to change (own|remote) node status$")
     public void user_who_wants_to_change_node_status(String accountType, String otherAccountType) {
 
         boolean isMain = "main".equals(accountType);
-        boolean isDataFound = false;
+        boolean isVip = "vip".equals(accountType);
+
         List<UserData> userDataList = UserDataProvider.getInstance().getUserDataList();
 
-        for (UserData u1 : userDataList) {
-            boolean isMainU1 = u1.isMainAccount();
-            if (isMain && isMainU1 || (!isMain && !isMainU1)) {
-                userData = u1;
+        chgNodePairList = new ArrayList<>();
+        Map<String, Integer> statusMap = getNodeStatusMap(userDataList.get(0));
+        if ("remote".equals(otherAccountType)) {
+            // remote
+            for (UserData u1 : userDataList) {
+                boolean isMainU1 = u1.isMainAccount();
+                boolean isVipU1 = isMainU1 && ((statusMap.get(u1.getAddress().substring(0, 4)) & 2) != 0);
 
-                String addressU1 = userData.getAddress();
-                if ("own".equals(otherAccountType)) {
-                    address = addressU1;
-                    isDataFound = true;
-                } else {
+                if ((isVip && isVipU1) || (isMain && isMainU1 && !isVipU1) || (!(isMain || isVip) && !isMainU1)) {
+                    Set<UserData> uSet = new HashSet<>();
+                    uSet.add(u1);
+
+                    Set<String> addedIds = new HashSet<>();
                     for (UserData u2 : userDataList) {
                         String addressU2 = u2.getAddress();
 
-                        if (addressU2.equals(addressU1)) {
-                            continue;
-                        }
+                        if (!u1.isAccountFromSameNode(addressU2)) {
+                            String nodeId = addressU2.substring(0, 4);
+                            if (!addedIds.contains(nodeId)) {
+                                addedIds.add(nodeId);
 
-                        boolean isSameNode = userData.isAccountFromSameNode(addressU2);
-                        if ("remote".equals(otherAccountType) && !isSameNode) {
-                            address = addressU2;
-                            isDataFound = true;
-                            break;
+                                chgNodePairList.add(new ChangeNodePair(uSet, nodeId));
+                            }
                         }
                     }
-                }
-
-                if (isDataFound) {
-                    address = address.substring(0, 4);
                     break;
+                }
+            }
+        } else {
+            // own
+            for (UserData u1 : userDataList) {
+                boolean isMainU1 = u1.isMainAccount();
+                boolean isVipU1 = isMainU1 && ((statusMap.get(u1.getAddress().substring(0, 4)) & 2) != 0);
+                if ((isVip && isVipU1) || (isMain && isMainU1) || (!(isMain || isVip) && !isMainU1)) {
+                    String nodeId = u1.getAddress().substring(0, 4);
+                    Set<UserData> uSet = new HashSet<>();
+                    uSet.add(u1);
+                    chgNodePairList.add(new ChangeNodePair(uSet, nodeId));
                 }
             }
         }
 
-        Assert.assertTrue("Cannot find suitable data", isDataFound);
+        for (ChangeNodePair p : chgNodePairList) {
+            log.info(p.toString());
+        }
+        assertThat(String.format("Cannot find suitable data (for accountType=<%1$s>, otherAccountType=<%2$s>).",
+                accountType, otherAccountType), chgNodePairList.size() != 0);
     }
 
-    @When("^user changes status$")
+    @When("^user changes account status$")
     public void user_changes_status() {
         FunctionCaller fc = FunctionCaller.getInstance();
         successfullyChangedBitsSet = new HashSet<>();
@@ -159,19 +176,28 @@ public class StatusStepDefs {
                     boolean isExpectedErrorDesc = EscConst.Error.CHANGE_STATUS_FAILED.equals(errorDesc)
                             || (EscConst.Error.CHANGE_STATUS_REMOTE_FAILED.equals(errorDesc) && !userData.isAccountFromSameNode(address));
 
-                    Assert.assertTrue(String.format("Unexpected error during account status change: %s", errorDesc),
-                            isExpectedErrorDesc);
+                    String reason = new AssertReason.Builder().req(fc.getLastRequest()).res(resp)
+                            .msg("Unexpected error during account status change: " + errorDesc).build();
+                    assertThat(reason, isExpectedErrorDesc);
+
                 } else {
+                    String reason;
+                    //check fee
                     BigDecimal fee = o.getAsJsonObject("tx").get("fee").getAsBigDecimal();
+                    reason = new AssertReason.Builder().msg("Invalid fee computed.")
+                            .req(fc.getLastRequest()).res(resp).build();
+                    assertThat(reason, fee, comparesEqualTo(expectedFee));
+
+                    // check deduct - expected deduct is equal to expected fee
                     BigDecimal deduct = o.getAsJsonObject("tx").get("deduct").getAsBigDecimal();
-                    Assert.assertEquals("Invalid fee computed", 0, expectedFee.compareTo(fee));
-                    // expected deduct is equal to expected fee
-                    Assert.assertEquals("Invalid deduct computed", 0, expectedFee.compareTo(deduct));
+                    reason = new AssertReason.Builder().msg("Invalid deduct computed.")
+                            .req(fc.getLastRequest()).res(resp).build();
+                    assertThat(reason, deduct, comparesEqualTo(expectedFee));
                 }
 
                 status = getAccountStatus();
                 log.info("lastStatus: {}", convertIntToBinaryString16b(lastStatus));
-                log.info("         i: {}", convertIntToBinaryString16b(i));
+                log.info("         i: {} bit {}", convertIntToBinaryString16b(i), k);
                 log.info("    status: {}", convertIntToBinaryString16b(status));
 
                 if ((status ^ lastStatus) == i) {
@@ -189,77 +215,153 @@ public class StatusStepDefs {
             } else if (successfulChangeCount > 0) {
                 // some changes were successful, some not
                 // this is wrong behaviour, because if bit could be changed, all changes should be possible
-                Assert.fail("Not all changes were possible");
+                Assert.fail("Not all changes were possible for bit " + k);
             }
         }
     }
+
 
     @When("^user changes node status$")
     public void user_changes_node_status() {
         FunctionCaller fc = FunctionCaller.getInstance();
         successfullyChangedBitsSet = new HashSet<>();
 
-        int status;
-        int lastStatus = getNodeStatus(userData, address);
-
         final int maxChangeCount = 2;
         String resp;
         BigDecimal expectedFee;
+
+        int groupCnt = chgNodePairList.size();
         // 32 bits
-        for (int i = 1, k = 1; k <= 32; i = i << 1, k++) {
+        int bitNo = 32;
 
-            int successfulChangeCount = 0;
-            for (int j = 0; j < maxChangeCount; j++) {
+        int status;
+        int startBit = 0;
+        int curBit;
 
-                if ((lastStatus & i) == 0) {
-                    resp = fc.setNodeStatus(userData, address, i);
-                    expectedFee = EscConst.SET_BANK_STATUS_FEE;
-                } else {
-                    resp = fc.unsetNodeStatus(userData, address, i);
-                    expectedFee = EscConst.UNSET_BANK_STATUS_FEE;
-                }
 
-                JsonObject o = Utils.convertStringToJsonObject(resp);
-                if (o.has("error")) {
-                    String errorDesc = o.get("error").getAsString();
-                    log.info("Error occurred: {}", errorDesc);
+        while (startBit < bitNo) {
+            Map<Integer, Integer> statusChangeCountMap = new HashMap<>();
 
-                    boolean isExpectedErrorDesc = EscConst.Error.CHANGE_STATUS_FAILED.equals(errorDesc)
-                            || EscConst.Error.CHANGE_NODE_STATUS_FAILED.equals(errorDesc);
+            for (int i = 0; i < maxChangeCount; i++) {
+                Map<Integer, StatusChange> statusChangeMap = new HashMap<>();
 
-                    Assert.assertTrue(String.format("Unexpected error during node status change: %s", errorDesc),
-                            isExpectedErrorDesc);
-                } else {
-                    BigDecimal fee = o.getAsJsonObject("tx").get("fee").getAsBigDecimal();
-                    BigDecimal deduct = o.getAsJsonObject("tx").get("deduct").getAsBigDecimal();
-                    Assert.assertEquals("Invalid fee computed", 0, expectedFee.compareTo(fee));
-                    // expected deduct is equal to expected fee
-                    Assert.assertEquals("Invalid deduct computed", 0, expectedFee.compareTo(deduct));
-                }
+                // change node status request block
+                curBit = startBit;
+                Map<String, Integer> statusMap = getNodeStatusMap(chgNodePairList.get(0).getUser());
+                do {
 
+                    // send request
+                    int curBitValue = 1 << curBit;
+                    ChangeNodePair cnp = chgNodePairList.get(curBit % groupCnt);
+                    String nodeId = cnp.getNodeId();
+
+                    assertThat(String.format("Cannot get node %s status.", nodeId), statusMap.get(nodeId), notNullValue());
+                    status = statusMap.get(nodeId);
+                    StatusChange sc = new StatusChange();
+                    sc.setStatusBefore(status);
+                    statusChangeMap.put(curBit, sc);
+
+                    final boolean isBitNotSet = (status & curBitValue) == 0;
+                    if (isBitNotSet) {
+                        expectedFee = EscConst.SET_BANK_STATUS_FEE;
+                    } else {
+                        expectedFee = EscConst.UNSET_BANK_STATUS_FEE;
+                    }
+
+                    Set<UserData> userDataSet = cnp.getUserDataSet();
+                    for (UserData u : userDataSet) {
+                        if (isBitNotSet) {
+                            resp = fc.setNodeStatus(u, nodeId, curBitValue);
+                        } else {
+                            resp = fc.unsetNodeStatus(u, nodeId, curBitValue);
+                        }
+
+                        JsonObject o = Utils.convertStringToJsonObject(resp);
+                        if (o.has("error")) {
+                            String errorDesc = o.get("error").getAsString();
+                            log.info("Error occurred: {}", errorDesc);
+
+                            boolean isExpectedErrorDesc = EscConst.Error.CHANGE_STATUS_FAILED.equals(errorDesc)
+                                    || EscConst.Error.CHANGE_NODE_STATUS_FAILED.equals(errorDesc);
+
+                            String reason = new AssertReason.Builder().req(fc.getLastRequest()).res(resp)
+                                    .msg("Unexpected error during node status change: " + errorDesc).build();
+                            assertThat(reason, isExpectedErrorDesc);
+                        } else {
+                            String reason;
+                            //check fee
+                            BigDecimal fee = o.getAsJsonObject("tx").get("fee").getAsBigDecimal();
+                            reason = new AssertReason.Builder().msg("Invalid fee computed.")
+                                    .req(fc.getLastRequest()).res(resp).build();
+                            assertThat(reason, fee, comparesEqualTo(expectedFee));
+
+                            // check deduct - expected deduct is equal to expected fee
+                            BigDecimal deduct = o.getAsJsonObject("tx").get("deduct").getAsBigDecimal();
+                            reason = new AssertReason.Builder().msg("Invalid deduct computed.")
+                                    .req(fc.getLastRequest()).res(resp).build();
+                            assertThat(reason, deduct, comparesEqualTo(expectedFee));
+                        }
+                    }
+
+                } while ((++curBit % groupCnt != 0) && ((curBit < bitNo)));
+
+                // wait for block
                 EscUtils.waitForNextBlock();
-                status = getNodeStatus(userData, address);
-                log.info("lastStatus: {}", convertIntToBinaryString32b(lastStatus));
-                log.info("         i: {}", convertIntToBinaryString32b(i));
-                log.info("    status: {}", convertIntToBinaryString32b(status));
+                EscUtils.waitForNextBlock();
+                statusMap = getNodeStatusMap(chgNodePairList.get(0).getUser());
 
-                if ((status ^ lastStatus) == i) {
-                    log.info("    result: correct");
-                    successfulChangeCount++;
-                } else {
-                    log.info("    result: incorrect");
+                // get node status response block
+                curBit = startBit;
+                do {
+                    // get node status
+                    ChangeNodePair cnp = chgNodePairList.get(curBit % groupCnt);
+                    String nodeId = cnp.getNodeId();
+
+                    String reason = new AssertReason.Builder().msg(String.format("Cannot get node %s status", nodeId))
+                            .req(fc.getLastRequest()).res(fc.getLastResponse()).build();
+                    assertThat(reason, statusMap.get(nodeId), notNullValue());
+                    status = statusMap.get(nodeId);
+                    statusChangeMap.get(curBit).setStatusAfter(status);
+
+                } while ((++curBit % groupCnt != 0) && ((curBit < bitNo)));
+
+                for (Integer k : statusChangeMap.keySet()) {
+                    int curBitValue = 1 << k;
+                    StatusChange sc = statusChangeMap.get(k);
+
+                    log.info("lastStatus: {}", convertIntToBinaryString32b(sc.getStatusBefore()));
+                    log.info("         i: {} bit {}", convertIntToBinaryString32b(curBitValue), k + 1);
+                    log.info("    status: {}", convertIntToBinaryString32b(sc.getStatusAfter()));
+
+                    if ((sc.getStatusAfter() ^ sc.getStatusBefore()) == curBitValue) {
+                        log.info("    result: correct");
+                        if (statusChangeCountMap.containsKey(k)) {
+                            // replace with incremented value
+                            Integer changeCount = statusChangeCountMap.get(k) + 1;
+                            statusChangeCountMap.replace(k, changeCount);
+                        } else {
+                            // put new value
+                            statusChangeCountMap.put(k, 1);
+                        }
+                    } else {
+                        log.info("    result: incorrect");
+                    }
                 }
 
-                lastStatus = status;
             }
 
-            if (successfulChangeCount == maxChangeCount) {
-                successfullyChangedBitsSet.add(k);
-            } else if (successfulChangeCount > 0) {
-                // some changes were successful, some not
-                // this is wrong behaviour, because if bit could be changed, all changes should be possible
-                Assert.fail("Not all changes were possible");
+            for (Integer k : statusChangeCountMap.keySet()) {
+                int changeCount = statusChangeCountMap.get(k);
+                if (changeCount == maxChangeCount) {
+                    successfullyChangedBitsSet.add(k + 1);
+                } else if (changeCount > 0) {
+                    // some changes were successful, some not
+                    // this is wrong behaviour, because if bit could be changed, all changes should be possible
+                    Assert.fail("Not all changes were possible for bit " + (k + 1));
+                }
             }
+
+            startBit += groupCnt;
         }
     }
 
@@ -288,8 +390,8 @@ public class StatusStepDefs {
         log.info("expected set: {}", formatSetLog(availableBitsSet));
         log.info("  result set: {}", formatSetLog(successfullyChangedBitsSet));
 
-        Assert.assertEquals("Changed bit set is different than expected.",
-                availableBitsSet, successfullyChangedBitsSet);
+        assertThat("Changed bit set is different than expected.",
+                successfullyChangedBitsSet, equalTo(availableBitsSet));
     }
 
     private String convertIntToBinaryString16b(int i) {
@@ -311,28 +413,28 @@ public class StatusStepDefs {
     }
 
     /**
-     * Gets node status from get_block function response.
+     * Gets nodes status from get_block function response.
      *
      * @param userData user data
-     * @param nodeId   node id in hex format - as in account address
-     * @return node status
+     * @return nodes status in map:<br />
+     * - key: node id in hex format - as in account address,<br />
+     * - value: status <br />
      */
-    private int getNodeStatus(UserData userData, String nodeId) {
-        int status = -1;
+    private Map<String, Integer> getNodeStatusMap(UserData userData) {
+        Map<String, Integer> m = new HashMap<>();
 
         String resp = FunctionCaller.getInstance().getBlock(userData);
         JsonObject o = Utils.convertStringToJsonObject(resp);
         JsonArray arr = o.getAsJsonObject("block").getAsJsonArray("nodes");
         for (JsonElement je : arr) {
             JsonObject nodeEntry = je.getAsJsonObject();
-            if (nodeId.equals(nodeEntry.get("id").getAsString())) {
-                status = nodeEntry.get("status").getAsInt();
-                return status;
-            }
+            m.put(nodeEntry.get("id").getAsString(), nodeEntry.get("status").getAsInt());
         }
 
-        Assert.assertNotEquals("Cannot get node status", -1, status);
-        return status;
+        String reason = new AssertReason.Builder().msg("Cannot get any node status.")
+                .req(FunctionCaller.getInstance().getLastRequest()).res(resp).build();
+        assertThat(reason, m.size() > 0);
+        return m;
     }
 
     private String formatSetLog(Set<Integer> intSet) {
@@ -375,6 +477,9 @@ public class StatusStepDefs {
 
     @When("^user tries to set out of range node status$")
     public void user_tries_set_oor_node_status() {
+        UserData ud = chgNodePairList.get(0).getUser();
+        String nodeId = chgNodePairList.get(0).getNodeId();
+
         StringBuilder sb = new StringBuilder("1");
         for (int i = 0; i < 31; i++) {
             sb.append('0');
@@ -384,12 +489,12 @@ public class StatusStepDefs {
             sb.append('0');
             String outOfRangeStatusBin = sb.toString();
             isTransactionAccepted = EscUtils.isTransactionAcceptedByNode(
-                    FunctionCaller.getInstance().setNodeStatus(userData, address, outOfRangeStatusBin));
+                    FunctionCaller.getInstance().setNodeStatus(ud, nodeId, outOfRangeStatusBin));
             if (isTransactionAccepted) {
                 break;
             }
             isTransactionAccepted = EscUtils.isTransactionAcceptedByNode(
-                    FunctionCaller.getInstance().unsetNodeStatus(userData, address, outOfRangeStatusBin));
+                    FunctionCaller.getInstance().unsetNodeStatus(ud, nodeId, outOfRangeStatusBin));
             if (isTransactionAccepted) {
                 break;
             }
@@ -398,7 +503,80 @@ public class StatusStepDefs {
 
     @Then("^change status transaction is rejected$")
     public void changeStatusTransactionIsRejected() {
-        Assert.assertFalse("Change status transaction was accepted.", isTransactionAccepted);
+        String reason = new AssertReason.Builder().msg("Change status transaction was accepted.")
+                .req(FunctionCaller.getInstance().getLastRequest())
+                .res(FunctionCaller.getInstance().getLastResponse())
+                .build();
+        assertThat(reason, !isTransactionAccepted);
+    }
+
+    class ChangeNodePair {
+
+        ChangeNodePair(Set<UserData> userDataSet, String nodeId) {
+            this.userDataSet = userDataSet;
+            this.nodeId = nodeId;
+        }
+
+        Set<UserData> getUserDataSet() {
+            return userDataSet;
+        }
+
+//        public void setUserDataSet(Set<UserData> userDataSet) {
+//            this.userDataSet = userDataSet;
+//        }
+
+        UserData getUser() {
+            return userDataSet.size() > 0 ? userDataSet.iterator().next() : null;
+        }
+
+        String getNodeId() {
+            return nodeId;
+        }
+
+//        public void setNodeId(String nodeId) {
+//            this.nodeId = nodeId;
+//        }
+
+        @Override
+        public String toString() {
+            StringBuilder sb = new StringBuilder("ChangeNodePair{");
+            sb.append("userDataSet=<");
+
+            for (UserData ud : userDataSet) {
+                sb.append(ud.getAddress());
+            }
+            sb.append(">, nodeId='");
+            sb.append(nodeId);
+            sb.append("'}");
+            return sb.toString();
+        }
+
+        private Set<UserData> userDataSet;
+        private String nodeId;
+
+    }
+
+    class StatusChange {
+
+        int getStatusBefore() {
+            return statusBefore;
+        }
+
+        void setStatusBefore(int statusBefore) {
+            this.statusBefore = statusBefore;
+        }
+
+        int getStatusAfter() {
+            return statusAfter;
+        }
+
+        void setStatusAfter(int statusAfter) {
+            this.statusAfter = statusAfter;
+        }
+
+        private int statusBefore;
+        private int statusAfter;
+
     }
 
 }

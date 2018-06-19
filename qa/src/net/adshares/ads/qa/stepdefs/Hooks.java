@@ -2,12 +2,6 @@ package net.adshares.ads.qa.stepdefs;
 
 import cucumber.api.java.Before;
 import net.adshares.ads.qa.util.FunctionCaller;
-import net.adshares.ads.qa.util.Utils;
-import org.junit.Assert;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
 
 /**
  * Cucumber hooks.
