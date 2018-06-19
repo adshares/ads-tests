@@ -760,8 +760,13 @@ public class FunctionCaller {
      * @param privateKey private key
      */
     public void addNodePrivateKey(int node, String privateKey) {
-        String keyFileName = String.format("%s/node%d/key/key.txt", dataDir, node);
+        String keyFileName = String.format("%1$s/node%2$d/key/key.txt", dataDir, node);
         String keyFileContent = callFunction(sysCmdPrefix.concat("cat " + keyFileName));
+        if ("".equals(keyFileContent)) {
+            // if node in dec format is not available, check new hex format
+            keyFileName = String.format("%1$s/node%2$04X/key/key.txt", dataDir, node);
+            keyFileContent = callFunction(sysCmdPrefix.concat("cat " + keyFileName));
+        }
 
         if ("".equals(keyFileContent)) {
             // empty content means that whole directory must be created
@@ -781,10 +786,16 @@ public class FunctionCaller {
      * @param node node ordinal number (decimal)
      */
     public void startNode(int node) {
-        String path = String.format("/ads-data/node%d/", node);
+        String path = String.format("%1$s/node%2$04X/", dataDir, node);
 
         // create options.cfg file
-        String optFileContent = callFunction(sysCmdPrefix.concat("cat /ads-data/node1/options.cfg"));
+        String optFileContent = callFunction(sysCmdPrefix.concat(String.format("cat %s/node0001/options.cfg", dataDir)));
+        if ("".equals(optFileContent)) {
+            // node number should be in hex format, but to keep compatibility it is also checked in dec format
+            optFileContent = callFunction(sysCmdPrefix.concat(String.format("cat %s/node1/options.cfg", dataDir)));
+        }
+        assertThat("Missing node0001 options.cfg.", !"".equals(optFileContent));
+
         String[] arr = optFileContent.split("\n");
         //svid
         arr[0] = "svid=" + node;
