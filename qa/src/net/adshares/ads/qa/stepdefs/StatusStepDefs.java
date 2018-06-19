@@ -127,7 +127,7 @@ public class StatusStepDefs {
             for (UserData u1 : userDataList) {
                 boolean isMainU1 = u1.isMainAccount();
                 boolean isVipU1 = isMainU1 && ((statusMap.get(u1.getAddress().substring(0, 4)) & 2) != 0);
-                if ((isVip && isVipU1) || (isMain && isMainU1) || (!(isMain || isVip) && !isMainU1)) {
+                if ((isVip && isVipU1) || (isMain && isMainU1 && !isVipU1) || (!(isMain || isVip) && !isMainU1)) {
                     String nodeId = u1.getAddress().substring(0, 4);
                     Set<UserData> uSet = new HashSet<>();
                     uSet.add(u1);
