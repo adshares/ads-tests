@@ -34,8 +34,8 @@ public class FunctionCaller {
     private static final String SYSTEM_PROP_IS_DOCKER = "is.docker";
     private static final String SYSTEM_PROP_DATA_DIR = "dir.data";
     private static final String DEFAULT_DATA_DIR = "/ads-data";
-    private static final String DOCKER_ESC_BINARY_FMT = "docker exec -i -w %s adshares_ads_1 esc";
-    private static final String ESC_BINARY_OPTS = " -n0 ";
+    private static final String DOCKER_ADS_BINARY = "docker exec -i adshares_ads_1 ads";
+    private static final String ADS_BINARY = "ads";
     /**
      * Regular expression which match when two json responses are returned. It is useful for calls preceded by get_me.
      */
@@ -45,7 +45,14 @@ public class FunctionCaller {
      * False, if locally.
      */
     private boolean isDocker;
-    private String escBinary;
+    /**
+     * Blockchain client application
+     */
+    private String clientApp;
+    /**
+     * Blockchain client application's options
+     */
+    private String clientAppOpts;
     /**
      * Directory in which node and user data is stored
      */
@@ -80,16 +87,17 @@ public class FunctionCaller {
         }
         tmpDir = dataDir + "/tmp";
         if (isDocker) {
-            escBinary = String.format(DOCKER_ESC_BINARY_FMT, tmpDir);
-            int lastIndex = escBinary.lastIndexOf(" ");
-            // remove esc binary from end
-            sysCmdPrefix = escBinary.substring(0, lastIndex + 1);
-            // remove -w option (working directory)
-            sysCmdPrefix = sysCmdPrefix.replaceFirst(" -w \\S+ ", " ");
+            int lastIndex = DOCKER_ADS_BINARY.lastIndexOf(" ");
+            // remove client app binary from end
+            sysCmdPrefix = DOCKER_ADS_BINARY.substring(0, lastIndex + 1);
+            clientApp = DOCKER_ADS_BINARY;
         } else {
-            escBinary = "esc";
             sysCmdPrefix = "";
+            clientApp = ADS_BINARY;
         }
+        // options:
+        // -n (--nice)
+        clientAppOpts = " -n0 -w " + tmpDir;
     }
 
     public static FunctionCaller getInstance() {
@@ -109,7 +117,7 @@ public class FunctionCaller {
     public String broadcast(UserData userData, String message) {
         log.debug("broadcast");
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"broadcast\", \"message\":\"%s\"}') | ", message)
-                .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
+                .concat(clientApp).concat(clientAppOpts).concat(userData.getDataAsEscParams());
         String output = callFunction(command);
         output = output.replaceFirst(DOUBLE_RESP_REGEX, "{");
         return output;
@@ -126,7 +134,7 @@ public class FunctionCaller {
     public String changeAccountKey(UserData userData, String publicKey, String signature) {
         log.debug("changeAccountKey");
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"change_account_key\", \"pkey\":\"%s\", \"signature\":\"%s\"}') | ", publicKey, signature)
-                .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
+                .concat(clientApp).concat(clientAppOpts).concat(userData.getDataAsEscParams());
         String output = callFunction(command);
         output = output.replaceFirst(DOUBLE_RESP_REGEX, "{");
         return output;
@@ -142,7 +150,7 @@ public class FunctionCaller {
     public String changeNodeKey(UserData userData, String publicKey) {
         log.debug("changeNodeKey");
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"change_node_key\", \"pkey\":\"%s\"}') | ", publicKey)
-                .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
+                .concat(clientApp).concat(clientAppOpts).concat(userData.getDataAsEscParams());
         String output = callFunction(command);
         output = output.replaceFirst(DOUBLE_RESP_REGEX, "{");
         return output;
@@ -157,7 +165,7 @@ public class FunctionCaller {
     public String createAccount(UserData userData) {
         log.debug("createAccount in current node");
         String command = "(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"create_account\"}') | "
-                .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
+                .concat(clientApp).concat(clientAppOpts).concat(userData.getDataAsEscParams());
         String output = callFunction(command);
         output = output.replaceFirst(DOUBLE_RESP_REGEX, "{");
         return output;
@@ -173,7 +181,7 @@ public class FunctionCaller {
     public String createAccount(UserData userData, int node) {
         log.debug("createAccount in {} node", node);
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"create_account\", \"node\":\"%d\"}') | ", node)
-                .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
+                .concat(clientApp).concat(clientAppOpts).concat(userData.getDataAsEscParams());
         String output = callFunction(command);
         output = output.replaceFirst(DOUBLE_RESP_REGEX, "{");
         return output;
@@ -188,7 +196,7 @@ public class FunctionCaller {
     public String createNode(UserData userData) {
         log.debug("createNode");
         String command = "(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"create_node\"}') | "
-                .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
+                .concat(clientApp).concat(clientAppOpts).concat(userData.getDataAsEscParams());
         String output = callFunction(command);
         output = output.replaceFirst(DOUBLE_RESP_REGEX, "{");
         return output;
@@ -203,7 +211,7 @@ public class FunctionCaller {
     public String getAccount(UserData userData, String address) {
         log.debug("getAccount {}", address);
         String command = String.format("echo '{\"run\":\"get_account\", \"address\":\"%s\"}' | ", address)
-                .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
+                .concat(clientApp).concat(clientAppOpts).concat(userData.getDataAsEscParams());
         return callFunction(command);
     }
 
@@ -279,7 +287,7 @@ public class FunctionCaller {
     private String getBlockSingleCall(UserData userData) {
         log.debug("getBlock");
         String command = ("echo '{\"run\":\"get_block\"}' | ")
-                .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
+                .concat(clientApp).concat(clientAppOpts).concat(userData.getDataAsEscParams());
         return callFunction(command);
     }
 
@@ -303,7 +311,7 @@ public class FunctionCaller {
     public String getBroadcast(UserData userData, String blockTime) {
         log.debug("getBroadcast");
         String command = String.format("echo '{\"run\":\"get_broadcast\", \"from\":\"%s\"}' | ", blockTime)
-                .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
+                .concat(clientApp).concat(clientAppOpts).concat(userData.getDataAsEscParams());
         return callFunction(command);
     }
 
@@ -316,7 +324,7 @@ public class FunctionCaller {
     public String getMe(UserData userData) {
         log.debug("getMe");
         String command = ("echo '{\"run\":\"get_me\"}' | ")
-                .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
+                .concat(clientApp).concat(clientAppOpts).concat(userData.getDataAsEscParams());
         return callFunction(command);
     }
 
@@ -340,7 +348,7 @@ public class FunctionCaller {
     public String getLog(UserData userData, long fromTimeStamp) {
         log.debug("getLog from {}", fromTimeStamp);
         String command = String.format("echo '{\"run\":\"get_log\", \"from\":\"%d\"}' | ", fromTimeStamp)
-                .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
+                .concat(clientApp).concat(clientAppOpts).concat(userData.getDataAsEscParams());
         return callFunction(command);
     }
 
@@ -355,7 +363,7 @@ public class FunctionCaller {
         log.debug("getLog from {}", logEventTimeStamp);
         long timestamp = logEventTimeStamp.getTimestamp();
         String command = String.format("echo '{\"run\":\"get_log\", \"from\":\"%d\"}' | ", timestamp)
-                .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
+                .concat(clientApp).concat(clientAppOpts).concat(userData.getDataAsEscParams());
         String resp = callFunction(command);
 
         // if eventNum is lesser than 2, no event will be removed
@@ -406,7 +414,7 @@ public class FunctionCaller {
     public String retrieveFunds(UserData userData, String remoteAddress) {
         log.debug("retrieveFunds by {} from {}", userData.getAddress(), remoteAddress);
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"retrieve_funds\", \"address\":\"%s\"}') | ", remoteAddress)
-                .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
+                .concat(clientApp).concat(clientAppOpts).concat(userData.getDataAsEscParams());
         String output = callFunction(command);
         output = output.replaceFirst(DOUBLE_RESP_REGEX, "{");
         return output;
@@ -423,7 +431,7 @@ public class FunctionCaller {
     public String sendOne(UserData sender, String receiverAddress, String amount) {
         log.debug("sendOne {}->{}: {}", sender.getAddress(), receiverAddress, amount);
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"send_one\", \"address\":\"%s\", \"amount\":\"%s\"}') | ", receiverAddress, amount)
-                .concat(escBinary).concat(ESC_BINARY_OPTS).concat(sender.getDataAsEscParams());
+                .concat(clientApp).concat(clientAppOpts).concat(sender.getDataAsEscParams());
         String output = callFunction(command);
         return output.replaceFirst(DOUBLE_RESP_REGEX, "{");
     }
@@ -440,7 +448,7 @@ public class FunctionCaller {
     public String sendOne(UserData sender, String receiverAddress, String amount, String message) {
         log.debug("sendOne {}->{}: {}, msg: {}", sender.getAddress(), receiverAddress, amount, message);
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"send_one\", \"address\":\"%s\", \"amount\":\"%s\", \"message\":\"%s\"}') | ", receiverAddress, amount, message)
-                .concat(escBinary).concat(ESC_BINARY_OPTS).concat(sender.getDataAsEscParams());
+                .concat(clientApp).concat(clientAppOpts).concat(sender.getDataAsEscParams());
         String output = callFunction(command);
         return output.replaceFirst(DOUBLE_RESP_REGEX, "{");
     }
@@ -460,7 +468,7 @@ public class FunctionCaller {
         Gson gson = new GsonBuilder().create();
         String wires = gson.toJson(receiverMap);
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"send_many\", \"wires\":%s}') | ", wires)
-                .concat(escBinary).concat(ESC_BINARY_OPTS).concat(sender.getDataAsEscParams());
+                .concat(clientApp).concat(clientAppOpts).concat(sender.getDataAsEscParams());
         String output = callFunction(command);
         output = output.replaceFirst(DOUBLE_RESP_REGEX, "{");
         return output;
@@ -488,7 +496,7 @@ public class FunctionCaller {
         sb.append("}");
         String wires = sb.toString();
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"send_many\", \"wires\":%s}') | ", wires)
-                .concat(escBinary).concat(ESC_BINARY_OPTS).concat(sender.getDataAsEscParams());
+                .concat(clientApp).concat(clientAppOpts).concat(sender.getDataAsEscParams());
         String output = callFunction(command);
         output = output.replaceFirst(DOUBLE_RESP_REGEX, "{");
         return output;
@@ -505,7 +513,7 @@ public class FunctionCaller {
     public String setAccountStatus(UserData userData, String address, int status) {
         log.debug("setAccountStatus {}->{}: status {} (bin)", userData.getAddress(), address, Integer.toBinaryString(status));
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"set_account_status\", \"address\":\"%s\", \"status\":\"%d\"}') | ", address, status)
-                .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
+                .concat(clientApp).concat(clientAppOpts).concat(userData.getDataAsEscParams());
         String output = callFunction(command);
         output = output.replaceFirst(DOUBLE_RESP_REGEX, "{");
         return output;
@@ -524,7 +532,7 @@ public class FunctionCaller {
         BigInteger bi = new BigInteger(status, 2);
         String statusDec = bi.toString(10);
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"set_account_status\", \"address\":\"%s\", \"status\":\"%s\"}') | ", address, statusDec)
-                .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
+                .concat(clientApp).concat(clientAppOpts).concat(userData.getDataAsEscParams());
         String output = callFunction(command);
         output = output.replaceFirst(DOUBLE_RESP_REGEX, "{");
         return output;
@@ -542,7 +550,7 @@ public class FunctionCaller {
         int node = Integer.valueOf(nodeId, 16);
         log.debug("setNodeStatus {}->node {} (dec): status {} (bin)", userData.getAddress(), node, Integer.toBinaryString(status));
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"set_node_status\", \"node\":\"%s\", \"status\":\"%d\"}') | ", node, status)
-                .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
+                .concat(clientApp).concat(clientAppOpts).concat(userData.getDataAsEscParams());
         String output = callFunction(command);
         output = output.replaceFirst(DOUBLE_RESP_REGEX, "{");
         return output;
@@ -562,7 +570,7 @@ public class FunctionCaller {
         BigInteger bi = new BigInteger(status, 2);
         String statusDec = bi.toString(10);
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"set_node_status\", \"node\":\"%s\", \"status\":\"%s\"}') | ", node, statusDec)
-                .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
+                .concat(clientApp).concat(clientAppOpts).concat(userData.getDataAsEscParams());
         String output = callFunction(command);
         output = output.replaceFirst(DOUBLE_RESP_REGEX, "{");
         return output;
@@ -579,7 +587,7 @@ public class FunctionCaller {
     public String unsetAccountStatus(UserData userData, String address, int status) {
         log.debug("unsetAccountStatus {}->{}: status {} (bin)", userData.getAddress(), address, Integer.toBinaryString(status));
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"unset_account_status\", \"address\":\"%s\", \"status\":\"%d\"}') | ", address, status)
-                .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
+                .concat(clientApp).concat(clientAppOpts).concat(userData.getDataAsEscParams());
         String output = callFunction(command);
         output = output.replaceFirst(DOUBLE_RESP_REGEX, "{");
         return output;
@@ -598,7 +606,7 @@ public class FunctionCaller {
         BigInteger bi = new BigInteger(status, 2);
         String statusDec = bi.toString(10);
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"unset_account_status\", \"address\":\"%s\", \"status\":\"%s\"}') | ", address, statusDec)
-                .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
+                .concat(clientApp).concat(clientAppOpts).concat(userData.getDataAsEscParams());
         String output = callFunction(command);
         output = output.replaceFirst(DOUBLE_RESP_REGEX, "{");
         return output;
@@ -616,7 +624,7 @@ public class FunctionCaller {
         int node = Integer.valueOf(nodeId, 16);
         log.debug("unsetNodeStatus {}->node {} (dec): status {} (bin)", userData.getAddress(), node, Integer.toBinaryString(status));
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"unset_node_status\", \"node\":\"%s\", \"status\":\"%d\"}') | ", node, status)
-                .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
+                .concat(clientApp).concat(clientAppOpts).concat(userData.getDataAsEscParams());
         String output = callFunction(command);
         output = output.replaceFirst(DOUBLE_RESP_REGEX, "{");
         return output;
@@ -636,7 +644,7 @@ public class FunctionCaller {
         BigInteger bi = new BigInteger(status, 2);
         String statusDec = bi.toString(10);
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"unset_node_status\", \"node\":\"%s\", \"status\":\"%s\"}') | ", node, statusDec)
-                .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
+                .concat(clientApp).concat(clientAppOpts).concat(userData.getDataAsEscParams());
         String output = callFunction(command);
         output = output.replaceFirst(DOUBLE_RESP_REGEX, "{");
         return output;
@@ -812,7 +820,7 @@ public class FunctionCaller {
         callFunction(sysCmdPrefix.concat("sh -c \"echo '" + optFileContent + "' > " + optFileName + "\""));
 
         // start node
-        callFunction(sysCmdPrefix.concat("sh -c \"cd " + path + ";escd -f 1 >stdout 2>stderr &\""));
+        callFunction(sysCmdPrefix.concat("sh -c \"cd " + path + ";adsd -f 1 >stdout 2>stderr &\""));
 
     }
 
@@ -833,7 +841,8 @@ public class FunctionCaller {
             String resp;
             long startTime = System.currentTimeMillis();
             do {
-                resp = callFunction(sysCmdPrefix.concat("/docker/wait-up.php"));
+                resp = callFunction(
+                        sysCmdPrefix + String.format("/ads_repo/scripts/ads_ctl.py --data-dir=%s wait", dataDir));
                 assertThat("Timeout during docker start.",
                         !(resp.contains("timeout") || resp.contains("failed")
                                 || (System.currentTimeMillis() - startTime > COMPILATION_TIMEOUT)));
