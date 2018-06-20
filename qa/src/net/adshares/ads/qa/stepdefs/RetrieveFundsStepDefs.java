@@ -23,6 +23,7 @@ public class RetrieveFundsStepDefs {
 
     private TransferUser retriever;
     private TransferUser inactiveUser;
+    private BigDecimal retrievedAmount;
     private String lastResp;
 
     @Given("^user in one node$")
@@ -48,10 +49,14 @@ public class RetrieveFundsStepDefs {
             if (u.isAccountFromSameNode(retrieverAddress) && !retrieverAddress.equals(u.getAddress())) {
                 inactiveUser = new TransferUser();
                 inactiveUser.setUserData(u);
+
+                LogChecker lc = new LogChecker(fc.getLog(u));
+                inactiveUser.setStartBalance(lc.getBalanceFromAccountObject());
+                inactiveUser.setLastEventTimestamp(lc.getLastEventTimestamp().incrementEventNum());
+                break;
             }
         }
         assertThat("Cannot find user in the same node", inactiveUser, notNullValue());
-        inactiveUser.setStartBalance(fc.getUserAccountBalance(inactiveUser.getUserData()));
     }
 
     @Given("^different user \\((main|normal)\\) in the different node$")
@@ -66,11 +71,15 @@ public class RetrieveFundsStepDefs {
                 if (("main".equals(type) && u.isMainAccount()) || ("normal".equals(type) && !u.isMainAccount())) {
                     inactiveUser = new TransferUser();
                     inactiveUser.setUserData(u);
+
+                    LogChecker lc = new LogChecker(fc.getLog(u));
+                    inactiveUser.setStartBalance(lc.getBalanceFromAccountObject());
+                    inactiveUser.setLastEventTimestamp(lc.getLastEventTimestamp().incrementEventNum());
+                    break;
                 }
             }
         }
         assertThat(String.format("Cannot find %s user in the different node", type), inactiveUser, notNullValue());
-        inactiveUser.setStartBalance(fc.getUserAccountBalance(inactiveUser.getUserData()));
     }
 
     @When("^user requests retrieve$")
@@ -121,6 +130,9 @@ public class RetrieveFundsStepDefs {
         FunctionCaller fc = FunctionCaller.getInstance();
 
 
+        UserData u = inactiveUser.getUserData();
+        LogEventTimestamp timestamp = inactiveUser.getLastEventTimestamp();
+        LogChecker lc = new LogChecker();
         int loopCnt = 0;
         int loopCntMax = 5;
         do {
@@ -131,8 +143,21 @@ public class RetrieveFundsStepDefs {
                 e.printStackTrace();
             }
             loopCnt++;
-        } while (BigDecimal.ZERO.compareTo(fc.getUserAccountBalance(inactiveUser)) != 0);
-        log.debug("Account was empty after {} block(s)", loopCnt);
+
+            lc.setResp(fc.getLog(u, timestamp));
+            LogFilter lf = new LogFilter(true);
+            lf.addFilter("type", "retrieve_funds");
+            lf.addFilter("inout", "out");
+            retrievedAmount = lc.getBalanceFromLogArray(lf);
+            if (retrievedAmount.compareTo(BigDecimal.ZERO) < 0) {
+                // change sign from '-' to '+'
+                retrievedAmount = BigDecimal.ZERO.subtract(retrievedAmount);
+                break;
+            }
+            timestamp = lc.getLastEventTimestamp();
+
+        } while (true);
+        log.debug("Funds was retrieved after {} block(s)", loopCnt);
 
         String resp = fc.getLog(inactiveUser.getUserData());
         String reason = new AssertReason.Builder().msg("Inactive account balance is different than sum of logged events.")
@@ -186,6 +211,8 @@ public class RetrieveFundsStepDefs {
                     // 2nd call confirm
                     senderFee = o.get("sender_fee").getAsBigDecimal();
                     BigDecimal senderBalance = o.get("sender_balance").getAsBigDecimal();
+                    assertThat("Retriever has different amount than was retrieved from inactive account.",
+                            senderBalance, comparesEqualTo(retrievedAmount));
                     BigDecimal senderFeeExpected = senderBalance.multiply(EscConst.RETRIEVE_FEE).setScale(11, BigDecimal.ROUND_FLOOR);
                     log.debug("senderFeeExpected1: {}", senderFeeExpected.toPlainString());
                     BigDecimal additionalRemoteFee = senderBalance.subtract(senderFeeExpected)
