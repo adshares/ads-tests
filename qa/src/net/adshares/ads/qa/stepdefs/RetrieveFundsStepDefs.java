@@ -131,7 +131,7 @@ public class RetrieveFundsStepDefs {
             }
             loopCnt++;
         } while (BigDecimal.ZERO.compareTo(fc.getUserAccountBalance(inactiveUser)) != 0);
-        log.info("Account was empty after {} block(s)", loopCnt);
+        log.debug("Account was empty after {} block(s)", loopCnt);
 
         String resp = fc.getLog(inactiveUser.getUserData());
         String reason = new AssertReason.Builder().msg("Inactive account balance is different than sum of logged events.")
@@ -165,11 +165,11 @@ public class RetrieveFundsStepDefs {
         BigDecimal balanceRetrieveEvents = lc.getBalanceFromLogArray(lf);
         // check retrieve_funds events
         JsonArray arr = lc.getFilteredLogArray(lf);
-        log.info("size = {}", arr.size());
+        log.debug("size = {}", arr.size());
         for (int i = 0; i < 4; i++) {
             JsonObject o = arr.get(i).getAsJsonObject();
 
-            log.info(Utils.jsonPrettyPrint(o.toString()));
+            log.debug(Utils.jsonPrettyPrint(o.toString()));
             BigDecimal senderFee;
             switch (i) {
                 case 0:
@@ -185,13 +185,13 @@ public class RetrieveFundsStepDefs {
                     senderFee = o.get("sender_fee").getAsBigDecimal();
                     BigDecimal senderBalance = o.get("sender_balance").getAsBigDecimal();
                     BigDecimal senderFeeExpected = senderBalance.multiply(EscConst.RETRIEVE_FEE).setScale(11, BigDecimal.ROUND_FLOOR);
-                    log.info("senderFeeExpected1: {}", senderFeeExpected.toPlainString());
+                    log.debug("senderFeeExpected1: {}", senderFeeExpected.toPlainString());
                     BigDecimal additionalRemoteFee = senderBalance.subtract(senderFeeExpected)
                             .multiply(EscConst.REMOTE_TX_FEE_COEFFICIENT).setScale(11, BigDecimal.ROUND_FLOOR);
                     senderFeeExpected = senderFeeExpected.add(additionalRemoteFee);
-                    log.info("senderFee:          {}", senderFee.toPlainString());
-                    log.info("senderFeeExpected2: {}", senderFeeExpected.toPlainString());
-                    log.info("diff:               {}", senderFee.subtract(senderFeeExpected).toPlainString());
+                    log.debug("senderFee:          {}", senderFee.toPlainString());
+                    log.debug("senderFeeExpected2: {}", senderFeeExpected.toPlainString());
+                    log.debug("diff:               {}", senderFee.subtract(senderFeeExpected).toPlainString());
                     assertThat("Unexpected fee for retrieve funds.", senderFee, comparesEqualTo(senderFeeExpected));
                     break;
             }
@@ -208,10 +208,10 @@ public class RetrieveFundsStepDefs {
         assertThat(reason, balance,
                 comparesEqualTo(startBalance.add(balanceRetrieveEvents).add(balanceOtherEvents)));
 
-        log.info("retriever Start Balance: {}", startBalance.toPlainString());
-        log.info("log Retrieve Events:     {}", balanceRetrieveEvents.toPlainString());
-        log.info("log Other Events:        {}", balanceOtherEvents.toPlainString());
-        log.info("retriever End Balance:   {}", balance.toPlainString());
+        log.debug("retriever Start Balance: {}", startBalance.toPlainString());
+        log.debug("log Retrieve Events:     {}", balanceRetrieveEvents.toPlainString());
+        log.debug("log Other Events:        {}", balanceOtherEvents.toPlainString());
+        log.debug("retriever End Balance:   {}", balance.toPlainString());
 
     }
 }

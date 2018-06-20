@@ -85,12 +85,12 @@ public class BroadcastStepDefs {
         BigDecimal deduct = o.getAsJsonObject("tx").get("deduct").getAsBigDecimal();
         int blockTimeInt = o.get("current_block_time").getAsInt();
         String blockTime = Integer.toHexString(blockTimeInt);
-        log.info("block time:  {}", blockTime);
+        log.debug("block time:  {}", blockTime);
 
-        log.info("deduct:         {}", deduct.toPlainString());
-        log.info("fee:         {}", fee.toPlainString());
-        log.info("feeExpected: {}", feeExpected.toPlainString());
-        log.info("diff:        {}", feeExpected.subtract(fee).toPlainString());
+        log.debug("deduct:         {}", deduct.toPlainString());
+        log.debug("fee:         {}", fee.toPlainString());
+        log.debug("feeExpected: {}", feeExpected.toPlainString());
+        log.debug("diff:        {}", feeExpected.subtract(fee).toPlainString());
 
         String reason;
 
@@ -145,17 +145,17 @@ public class BroadcastStepDefs {
                     isError = o.has("error");
                     if (isError) {
                         String err = o.get("error").getAsString();
-                        log.warn("get_broadcast error: {}", err);
+                        log.debug("get_broadcast error: {}", err);
 
                         if (EscConst.Error.BROADCAST_NOT_READY.equals(err)) {
                             Assert.assertTrue("Broadcast wasn't prepared in expected time.", delay < delayMax);
-                            log.info("wait another block");
+                            log.debug("wait another block");
                             waitForBlock();
                             delay++;
                         } else if (EscConst.Error.BROADCAST_NO_FILE_TO_SEND.equals(err)) {
                             Assert.assertTrue("Broadcast message wasn't found in expected blocks.",
                                     nextBlockCheckAttempt < nextBlockCheckAttemptMax);
-                            log.info("check next block (v1)");
+                            log.debug("check next block (v1)");
                             blockTime = EscUtils.getNextBlock(blockTime);
                             nextBlockCheckAttempt++;
                         } else {
@@ -164,7 +164,7 @@ public class BroadcastStepDefs {
                     } else {
                         JsonArray broadcastArr = o.getAsJsonArray("broadcast");
                         int size = broadcastArr.size();
-                        log.info("size {}", size);
+                        log.debug("size {}", size);
                         for (int i = 0; i < size; i++) {
                             String receivedMessage = broadcastArr.get(i).getAsJsonObject().get("message").getAsString();
 
@@ -172,11 +172,11 @@ public class BroadcastStepDefs {
                             while (it.hasNext()) {
                                 String otherMessage = it.next().getMessage();
                                 if (otherMessage.equals(receivedMessage)) {
-                                    log.info("got message: {}", receivedMessage);
+                                    log.debug("got message: {}", receivedMessage);
                                     it.remove();
 
                                     if (message.equals(receivedMessage)) {
-                                        log.info("received message");
+                                        log.debug("received message");
                                         isMessageReceived = true;
                                     }
                                     break;
@@ -190,7 +190,7 @@ public class BroadcastStepDefs {
                             // therefore next block must be checked
                             Assert.assertTrue("Broadcast message wasn't found in further blocks.",
                                     nextBlockCheckAttempt < nextBlockCheckAttemptMax);
-                            log.info("check next block (v2)");
+                            log.debug("check next block (v2)");
                             blockTime = EscUtils.getNextBlock(blockTime);
                             nextBlockCheckAttempt++;
                         }
@@ -216,13 +216,13 @@ public class BroadcastStepDefs {
         JsonObject o = Utils.convertStringToJsonObject(lastResp);
         if (o.has("error")) {
             String err = o.get("error").getAsString();
-            log.info("Message was rejected with error: {}", err);
+            log.debug("Message was rejected with error: {}", err);
         } else {
             FunctionCaller fc = FunctionCaller.getInstance();
             String reason = new AssertReason.Builder().msg("Message was accepted.")
                     .req(fc.getLastRequest()).res(fc.getLastResponse()).build();
             assertThat(reason, !EscUtils.isTransactionAcceptedByNode(o));
-            log.info("Message was rejected: not accepted by node");
+            log.debug("Message was rejected: not accepted by node");
         }
     }
 

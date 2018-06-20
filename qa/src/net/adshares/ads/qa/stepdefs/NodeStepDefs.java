@@ -71,7 +71,7 @@ public class NodeStepDefs {
         assertThat("Incorrect node = " + node, node > 0);
         // convert dec node id to hex
         String address = String.format("%04X", node) + "-00000000-XXXX";
-        log.info("Address in created node{}: {}", node, address);
+        log.debug("Address in created node{}: {}", node, address);
 
         assertThat("Created address is not valid: " + address, EscUtils.isValidAccountAddress(address));
         createdUserData = UserDataProvider.getInstance().cloneUser(userData, address);
@@ -82,7 +82,7 @@ public class NodeStepDefs {
 
     @Then("^node is created$")
     public void node_is_created() {
-        log.info("node_is_created: start");
+        log.debug("node_is_created: start");
 
         EscUtils.waitForNextBlock();
         String nodeId = createdUserData.getNodeId();
@@ -100,8 +100,8 @@ public class NodeStepDefs {
                 JsonObject nodeEntry = je.getAsJsonObject();
                 if (nodeId.equals(nodeEntry.get("id").getAsString())) {
                     msid = nodeEntry.get("msid").getAsInt();
-                    log.info("msid: {}", msid);
-                    log.info("attempts: {}", attempt);
+                    log.debug("msid: {}", msid);
+                    log.debug("attempts: {}", attempt);
                     break;
                 }
             }
@@ -115,7 +115,7 @@ public class NodeStepDefs {
             assertThat(reason, attempt < attemptMax);
             EscUtils.waitForNextBlock();
         }
-        log.info("node_is_created: end");
+        log.debug("node_is_created: end");
 
     }
 
@@ -200,6 +200,6 @@ public class NodeStepDefs {
         EscUtils.waitForNextBlock();
         EscUtils.waitForNextBlock();
         BigDecimal balance = FunctionCaller.getInstance().getUserAccountBalance(userData);
-        log.info("Balance {}", balance.toPlainString());
+        log.debug("Balance {}", balance.toPlainString());
     }
 }

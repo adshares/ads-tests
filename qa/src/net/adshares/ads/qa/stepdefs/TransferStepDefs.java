@@ -199,10 +199,10 @@ public class TransferStepDefs {
             String reason = assertReasonBuilder.msg("Transfer was accepted by node.").build();
             assertThat(reason, !isTransactionAccepted);
 
-            log.info("Cannot transfer funds");
-            log.info("\tbalance: {}", senderBalance);
-            log.info("\t amount: {}", txAmount);
-            log.info("\t    fee: {}", fee);
+            log.debug("Cannot transfer funds");
+            log.debug("\tbalance: {}", senderBalance);
+            log.debug("\t amount: {}", txAmount);
+            log.debug("\t    fee: {}", fee);
 
             for (TransferUser txReceiver : txReceivers) {
                 txReceiver.setExpBalance(txReceiver.getStartBalance());
@@ -240,14 +240,14 @@ public class TransferStepDefs {
             // increase transfer amount and check if it can be done
             BigDecimal expBalance;
             BigDecimal minAmount = new BigDecimal("0.00000000001");
-            log.info("txAmount  pre: {}", txAmount);
+            log.debug("txAmount  pre: {}", txAmount);
             do {
                 txAmount = txAmount.add(minAmount);
-                log.info("txAmount  ins: {}", txAmount);
+                log.debug("txAmount  ins: {}", txAmount);
                 expBalance = availableAmount.subtract(txAmount).subtract(getTransferFee(senderAddress, receiverAddress, txAmount));
             } while (expBalance.compareTo(BigDecimal.ZERO) >= 0);
             txAmount = txAmount.subtract(minAmount);
-            log.info("txAmount post: {}", txAmount);
+            log.debug("txAmount post: {}", txAmount);
 
             send_ads(txAmount.toString(), null, null);
         }
@@ -255,7 +255,7 @@ public class TransferStepDefs {
 
     @When("^wait for balance update")
     public void wait_for_balance_update() {
-        log.info("wait for balance update :start");
+        log.debug("wait for balance update :start");
         FunctionCaller fc = FunctionCaller.getInstance();
 
         String resp;
@@ -318,18 +318,18 @@ public class TransferStepDefs {
                 log.error("Sleep interrupted");
                 log.error(e.toString());
             }
-            log.info("");
-            log.info("period delay: {}", attempt + 1);
-            log.info("");
+            log.debug("");
+            log.debug("period delay: {}", attempt + 1);
+            log.debug("");
         }
 
         if (attempt == attemptMax) {
-            log.info("Balance was not updated in expected time ({} block periods)", attempt);
+            log.debug("Balance was not updated in expected time ({} block periods)", attempt);
         } else {
-            log.info("Balance was updated in expected time ({} block periods)", attempt + 1);
+            log.debug("Balance was updated in expected time ({} block periods)", attempt + 1);
         }
 
-        log.info("wait for balance update :end");
+        log.debug("wait for balance update :end");
     }
 
     @Then("^sender balance is as expected( \\(changed by amount and fee\\))?$")
@@ -346,11 +346,11 @@ public class TransferStepDefs {
         BigDecimal balance = logChecker.getBalanceFromAccountObject();
         BigDecimal balanceFromLog = logChecker.getBalanceFromLogArray();
         BigDecimal senderExpBalance = txSender.getExpBalance();
-        log.info("balance           {} : sender", balance);
-        log.info("balanceFromLog    {} : sender", balanceFromLog);
-        log.info("balanceExpected 1 {} : sender", senderExpBalance);
+        log.debug("balance           {} : sender", balance);
+        log.debug("balanceFromLog    {} : sender", balanceFromLog);
+        log.debug("balanceExpected 1 {} : sender", senderExpBalance);
         senderExpBalance = senderExpBalance.add(balanceFromLog);
-        log.info("balanceExpected 2 {} : sender", senderExpBalance);
+        log.debug("balanceExpected 2 {} : sender", senderExpBalance);
         txSender.setExpBalance(senderExpBalance);
 
         AssertReason.Builder ar = new AssertReason.Builder()
@@ -395,11 +395,11 @@ public class TransferStepDefs {
             }
 
             BigDecimal receiverExpBalance = txReceiver.getExpBalance();
-            log.info("balance           {} : receiver{}", balance, i);
-            log.info("balanceFromLog    {} : receiver{}", balanceFromLog, i);
-            log.info("balanceExpected 1 {} : receiver{}", receiverExpBalance, i);
+            log.debug("balance           {} : receiver{}", balance, i);
+            log.debug("balanceFromLog    {} : receiver{}", balanceFromLog, i);
+            log.debug("balanceExpected 1 {} : receiver{}", receiverExpBalance, i);
             receiverExpBalance = receiverExpBalance.add(balanceFromLog);
-            log.info("balanceExpected 2 {} : receiver{}", receiverExpBalance, i);
+            log.debug("balanceExpected 2 {} : receiver{}", receiverExpBalance, i);
             txReceiver.setExpBalance(receiverExpBalance);
 
 
@@ -434,7 +434,7 @@ public class TransferStepDefs {
         String reason = new AssertReason.Builder().msg("Invalid message.")
                 .req(fc.getLastRequest()).res(fc.getLastResponse()).build();
         assertThat(reason, receivedMessage, equalTo(message));
-        log.info("read message {}", receivedMessage);
+        log.debug("read message {}", receivedMessage);
     }
 
     @When("^sender sends many transfers to single receiver$")
@@ -493,12 +493,12 @@ public class TransferStepDefs {
             String userLog = fc.getLog(user);
 
             final String userAddress = user.getAddress();
-            log.debug(userAddress);
+            log.trace(userAddress);
             lc.setResp(userLog);
             String reason = new AssertReason.Builder().req(fc.getLastRequest()).res(fc.getLastResponse())
                     .msg("Balance is different than sum of logged events in account " + userAddress).build();
             assertThat(reason, lc.isBalanceFromObjectEqualToArray());
-            log.debug("success");
+            log.trace("success");
         }
     }
 

@@ -101,7 +101,7 @@ public class AccountStepDefs {
         assertThat(reason, !o.has("error"));
 
         BigDecimal balance = o.getAsJsonObject("account").get("balance").getAsBigDecimal();
-        log.info("Balance {}", balance.toPlainString());
+        log.debug("Balance {}", balance.toPlainString());
     }
 
     @Then("^account change key transaction is present in log$")
@@ -114,9 +114,9 @@ public class AccountStepDefs {
         // fee in log is negative, but in doc is positive
         // change sign of fee from log
         feeFromLog = BigDecimal.ZERO.subtract(feeFromLog);
-        log.info("fees in log: {}", feeFromLog.toPlainString());
-        log.info("fees in doc: {}", EscConst.CHANGE_ACCOUNT_KEY_FEE.toPlainString());
-        log.info("diff:        {}", feeFromLog.subtract(EscConst.CHANGE_ACCOUNT_KEY_FEE).toPlainString());
+        log.debug("fees in log: {}", feeFromLog.toPlainString());
+        log.debug("fees in doc: {}", EscConst.CHANGE_ACCOUNT_KEY_FEE.toPlainString());
+        log.debug("diff:        {}", feeFromLog.subtract(EscConst.CHANGE_ACCOUNT_KEY_FEE).toPlainString());
 
         // check fee from log
         String reason = new AssertReason.Builder().msg("Invalid fee computed.")
@@ -193,12 +193,12 @@ public class AccountStepDefs {
 
             if (o.has("error")) {
                 String errorDesc = o.get("error").getAsString();
-                log.info("Error occurred: {}", errorDesc);
+                log.debug("Error occurred: {}", errorDesc);
                 assertThat("Unexpected error after account creation.", errorDesc,
                         equalTo(EscConst.Error.GET_GLOBAL_USER_FAILED));
             } else {
                 BigDecimal balance = o.getAsJsonObject("account").get("balance").getAsBigDecimal();
-                log.info("Balance {}", balance.toPlainString());
+                log.debug("Balance {}", balance.toPlainString());
                 break;
             }
 
@@ -225,7 +225,7 @@ public class AccountStepDefs {
 
             if (o.has("error")) {
                 String errorDesc = o.get("error").getAsString();
-                log.info("Error occurred: {}", errorDesc);
+                log.debug("Error occurred: {}", errorDesc);
                 assertThat("Unexpected error after account creation.", errorDesc,
                         equalTo(EscConst.Error.CREATE_ACCOUNT_BAD_TIMING));
             } else {

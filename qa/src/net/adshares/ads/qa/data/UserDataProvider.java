@@ -79,7 +79,7 @@ public class UserDataProvider {
     }
 
     public List<UserData> getUserDataList(int count, boolean singleNode) {
-        log.debug("getUserDataList(count=" + count + ", singleNode=" + singleNode + ")");
+        log.trace("getUserDataList(count=" + count + ", singleNode=" + singleNode + ")");
 
         ArrayList<UserData> userData = new ArrayList<>(count);
         UserData firstUser = null;
@@ -104,16 +104,15 @@ public class UserDataProvider {
 
         boolean enoughUsers = count == userData.size();
         if (!enoughUsers) {
-            log.error("getUserDataList(count=" + count + ", singleNode=" + singleNode + ")");
-            log.error("Not enough users. Needed {}, but only {} available.", count, userData.size());
+            Assert.fail("Not enough users. Needed " + count + " but only " + userData.size() + " available.\n"
+                    + "getUserDataList(count=" + count + ", singleNode=" + singleNode + ")");
         }
-        Assert.assertTrue("Not enough users.", enoughUsers);
 
         return userData;
     }
 
     public List<UserData> getUserDataFromDifferentNodes(int count) {
-        log.debug("getUserDataFromDifferentNodes(count=" + count + ")");
+        log.trace("getUserDataFromDifferentNodes(count=" + count + ")");
 
         ArrayList<UserData> userData = new ArrayList<>(count);
         for (UserData user : users) {
@@ -137,10 +136,9 @@ public class UserDataProvider {
 
         boolean enoughUsers = count == userData.size();
         if (!enoughUsers) {
-            log.error("getUserDataFromDifferentNodes(count=" + count + ")");
-            log.error("Not enough users. Needed {}, but only {} available.", count, userData.size());
+            Assert.fail("Not enough users. Needed " + count + " but only " + userData.size() + " available.\n"
+                    + "getUserDataFromDifferentNodes(count=" + count + ")");
         }
-        Assert.assertTrue("Not enough users.",enoughUsers);
 
         return userData;
     }
@@ -174,7 +172,7 @@ public class UserDataProvider {
                 }
 
                 // code below works only for local nodes due to default host (HOST constant)
-                log.info("Clone user to new node");
+                log.trace("Clone user to new node");
                 int node = Integer.valueOf(nodeId, 16);
                 int portAsInt = STARTING_PORT_INT + node - 1;
                 UserData u = new UserData(String.valueOf(portAsInt), HOST, address, userData.getSecret());

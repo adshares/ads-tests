@@ -137,7 +137,7 @@ public class StatusStepDefs {
         }
 
         for (ChangeNodePair p : chgNodePairList) {
-            log.info(p.toString());
+            log.debug(p.toString());
         }
         assertThat(String.format("Cannot find suitable data (for accountType=<%1$s>, otherAccountType=<%2$s>).",
                 accountType, otherAccountType), chgNodePairList.size() != 0);
@@ -171,7 +171,7 @@ public class StatusStepDefs {
                 JsonObject o = Utils.convertStringToJsonObject(resp);
                 if (o.has("error")) {
                     String errorDesc = o.get("error").getAsString();
-                    log.info("Error occurred: {}", errorDesc);
+                    log.debug("Error occurred: {}", errorDesc);
 
                     boolean isExpectedErrorDesc = EscConst.Error.CHANGE_STATUS_FAILED.equals(errorDesc)
                             || (EscConst.Error.CHANGE_STATUS_REMOTE_FAILED.equals(errorDesc) && !userData.isAccountFromSameNode(address));
@@ -196,15 +196,15 @@ public class StatusStepDefs {
                 }
 
                 status = getAccountStatus();
-                log.info("lastStatus: {}", convertIntToBinaryString16b(lastStatus));
-                log.info("         i: {} bit {}", convertIntToBinaryString16b(i), k);
-                log.info("    status: {}", convertIntToBinaryString16b(status));
+                log.debug("lastStatus: {}", convertIntToBinaryString16b(lastStatus));
+                log.debug("         i: {} bit {}", convertIntToBinaryString16b(i), k);
+                log.debug("    status: {}", convertIntToBinaryString16b(status));
 
                 if ((status ^ lastStatus) == i) {
-                    log.info("    result: correct");
+                    log.debug("    result: correct");
                     successfulChangeCount++;
                 } else {
-                    log.info("    result: incorrect");
+                    log.debug("    result: incorrect");
                 }
 
                 lastStatus = status;
@@ -279,7 +279,7 @@ public class StatusStepDefs {
                         JsonObject o = Utils.convertStringToJsonObject(resp);
                         if (o.has("error")) {
                             String errorDesc = o.get("error").getAsString();
-                            log.info("Error occurred: {}", errorDesc);
+                            log.debug("Error occurred: {}", errorDesc);
 
                             boolean isExpectedErrorDesc = EscConst.Error.CHANGE_STATUS_FAILED.equals(errorDesc)
                                     || EscConst.Error.CHANGE_NODE_STATUS_FAILED.equals(errorDesc);
@@ -329,12 +329,12 @@ public class StatusStepDefs {
                     int curBitValue = 1 << k;
                     StatusChange sc = statusChangeMap.get(k);
 
-                    log.info("lastStatus: {}", convertIntToBinaryString32b(sc.getStatusBefore()));
-                    log.info("         i: {} bit {}", convertIntToBinaryString32b(curBitValue), k + 1);
-                    log.info("    status: {}", convertIntToBinaryString32b(sc.getStatusAfter()));
+                    log.debug("lastStatus: {}", convertIntToBinaryString32b(sc.getStatusBefore()));
+                    log.debug("         i: {} bit {}", convertIntToBinaryString32b(curBitValue), k + 1);
+                    log.debug("    status: {}", convertIntToBinaryString32b(sc.getStatusAfter()));
 
                     if ((sc.getStatusAfter() ^ sc.getStatusBefore()) == curBitValue) {
-                        log.info("    result: correct");
+                        log.debug("    result: correct");
                         if (statusChangeCountMap.containsKey(k)) {
                             // replace with incremented value
                             Integer changeCount = statusChangeCountMap.get(k) + 1;
@@ -344,7 +344,7 @@ public class StatusStepDefs {
                             statusChangeCountMap.put(k, 1);
                         }
                     } else {
-                        log.info("    result: incorrect");
+                        log.debug("    result: incorrect");
                     }
                 }
 
@@ -387,8 +387,8 @@ public class StatusStepDefs {
             }
         }
 
-        log.info("expected set: {}", formatSetLog(availableBitsSet));
-        log.info("  result set: {}", formatSetLog(successfullyChangedBitsSet));
+        log.debug("expected set: {}", formatSetLog(availableBitsSet));
+        log.debug("  result set: {}", formatSetLog(successfullyChangedBitsSet));
 
         assertThat("Changed bit set is different than expected.",
                 successfullyChangedBitsSet, equalTo(availableBitsSet));

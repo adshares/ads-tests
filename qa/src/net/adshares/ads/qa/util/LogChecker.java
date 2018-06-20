@@ -74,7 +74,7 @@ public class LogChecker {
 
         // node
         int node = jsonResp.getAsJsonObject("account").get("node").getAsInt();
-        log.info("NODE {}", node);
+        log.debug("NODE {}", node);
 
         JsonElement jsonElementLog = jsonResp.get("log");
         if (jsonElementLog.isJsonArray()) {
@@ -90,7 +90,7 @@ public class LogChecker {
                 // checking entry with filter
                 if (filter != null) {
                     if (!filter.processEntry(logEntry)) {
-                        log.info("skipping: {}", type);
+                        log.debug("skipping: {}", type);
                         continue;
                     }
                 }
@@ -120,7 +120,7 @@ public class LogChecker {
 
                 } else if ("bank_profit".equals(type)) {// type_no == 32785
                     if (logEntry.has("node") && logEntry.get("node").getAsInt() != node) {
-                        log.info("bank profit for different node");
+                        log.debug("bank profit for different node");
                         amount = BigDecimal.ZERO;
                     } else {
                         amount = logEntry.get("profit").getAsBigDecimal();
@@ -165,7 +165,7 @@ public class LogChecker {
 
                 }
                 balance = balance.add(amount);
-                log.info(String.format("%1$20s:%2$s", type, amount.toString()));
+                log.debug(String.format("%1$20s:%2$s", type, amount.toString()));
             }
         }
 
@@ -180,7 +180,7 @@ public class LogChecker {
     public LogEventTimestamp getLastEventTimestamp() {
         LogEventTimestamp let = EscUtils.getLastLogEventTimestamp(jsonResp);
 
-        log.info("last log event time: {} ({}) for {}", let, Utils.formatSecondsAsDate(let.getTimestamp()),
+        log.debug("last log event time: {} ({}) for {}", let, Utils.formatSecondsAsDate(let.getTimestamp()),
                 jsonResp.getAsJsonObject("account").get("address").getAsString());
         return let;
     }
@@ -217,9 +217,9 @@ public class LogChecker {
     public boolean isBalanceFromObjectEqualToArray() {
         BigDecimal balanceObj = getBalanceFromAccountObject();
         BigDecimal balanceArr = getBalanceFromLogArray();
-        log.info("balanceObj: {}", balanceObj.toPlainString());
-        log.info("balanceArr: {}", balanceArr.toPlainString());
-        log.info("diff      : {}", balanceObj.subtract(balanceArr).toPlainString());
+        log.debug("balanceObj: {}", balanceObj.toPlainString());
+        log.debug("balanceArr: {}", balanceArr.toPlainString());
+        log.debug("diff      : {}", balanceObj.subtract(balanceArr).toPlainString());
         return balanceObj.compareTo(balanceArr) == 0;
     }
 }

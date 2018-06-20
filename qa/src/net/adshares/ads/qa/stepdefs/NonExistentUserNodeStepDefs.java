@@ -61,7 +61,7 @@ public class NonExistentUserNodeStepDefs {
     @Then("^transfer to invalid address is rejected$")
     public void transfer_is_rejected() {
         final FunctionCaller fc = FunctionCaller.getInstance();
-        log.info("Error: \"{}\"", EscUtils.getErrorDescription(lastResp));
+        log.debug("Error: \"{}\"", EscUtils.getErrorDescription(lastResp));
 
         String reason;
         // check balance
@@ -73,7 +73,7 @@ public class NonExistentUserNodeStepDefs {
         reason = new AssertReason.Builder().msg("Transfer to invalid address was accepted.")
                 .req(fc.getLastRequest()).res(lastResp).build();
         assertThat(reason, !EscUtils.isTransactionAcceptedByNode(lastResp));
-        log.info("Transaction is rejected.");
+        log.debug("Transaction is rejected.");
     }
 
     private void sendOneWrapper(String address) {

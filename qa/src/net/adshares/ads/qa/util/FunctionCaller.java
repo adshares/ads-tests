@@ -107,7 +107,7 @@ public class FunctionCaller {
      * @return response: json when request was correct, empty otherwise
      */
     public String broadcast(UserData userData, String message) {
-        log.info("broadcast");
+        log.debug("broadcast");
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"broadcast\", \"message\":\"%s\"}') | ", message)
                 .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
         String output = callFunction(command);
@@ -124,7 +124,7 @@ public class FunctionCaller {
      * @return response: json when request was correct, empty otherwise
      */
     public String changeAccountKey(UserData userData, String publicKey, String signature) {
-        log.info("changeAccountKey");
+        log.debug("changeAccountKey");
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"change_account_key\", \"pkey\":\"%s\", \"signature\":\"%s\"}') | ", publicKey, signature)
                 .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
         String output = callFunction(command);
@@ -140,7 +140,7 @@ public class FunctionCaller {
      * @return response: json when request was correct, empty otherwise
      */
     public String changeNodeKey(UserData userData, String publicKey) {
-        log.info("changeNodeKey");
+        log.debug("changeNodeKey");
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"change_node_key\", \"pkey\":\"%s\"}') | ", publicKey)
                 .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
         String output = callFunction(command);
@@ -155,7 +155,7 @@ public class FunctionCaller {
      * @return response: json when request was correct, empty otherwise
      */
     public String createAccount(UserData userData) {
-        log.info("createAccount in current node");
+        log.debug("createAccount in current node");
         String command = "(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"create_account\"}') | "
                 .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
         String output = callFunction(command);
@@ -171,7 +171,7 @@ public class FunctionCaller {
      * @return response: json when request was correct, empty otherwise
      */
     public String createAccount(UserData userData, int node) {
-        log.info("createAccount in {} node", node);
+        log.debug("createAccount in {} node", node);
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"create_account\", \"node\":\"%d\"}') | ", node)
                 .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
         String output = callFunction(command);
@@ -186,7 +186,7 @@ public class FunctionCaller {
      * @return response: json when request was correct, empty otherwise
      */
     public String createNode(UserData userData) {
-        log.info("createNode");
+        log.debug("createNode");
         String command = "(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"create_node\"}') | "
                 .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
         String output = callFunction(command);
@@ -201,7 +201,7 @@ public class FunctionCaller {
      * @return response: json when request was correct, empty otherwise
      */
     public String getAccount(UserData userData, String address) {
-        log.info("getAccount {}", address);
+        log.debug("getAccount {}", address);
         String command = String.format("echo '{\"run\":\"get_account\", \"address\":\"%s\"}' | ", address)
                 .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
         return callFunction(command);
@@ -223,13 +223,13 @@ public class FunctionCaller {
         int attempt = 0;
         final long delay = 3000L;
         final int attemptMax = (int) (EscConst.BLOCK_PERIOD_MS / delay);
-        log.debug("attemptMax = {}", attemptMax);
+        log.trace("attemptMax = {}", attemptMax);
         while (attempt++ < attemptMax) {
             resp = FunctionCaller.getInstance().getBlockSingleCall(userData);
             JsonObject o = Utils.convertStringToJsonObject(resp);
             if (o.has("error")) {
                 String errorDesc = o.get("error").getAsString();
-                log.info("Error occurred: {}", errorDesc);
+                log.debug("Error occurred: {}", errorDesc);
                 assertThat("Unexpected error after account creation.", errorDesc,
                         equalTo(EscConst.Error.GET_BLOCK_INFO_FAILED));
             } else {
@@ -253,7 +253,7 @@ public class FunctionCaller {
                     Assert.fail(reason);
                 }
 
-                log.info("getBlock resp in {} attempt", attempt);
+                log.debug("getBlock resp in {} attempt", attempt);
                 return resp;
             }
 
@@ -277,7 +277,7 @@ public class FunctionCaller {
      * @return response: json when request was correct, empty otherwise
      */
     private String getBlockSingleCall(UserData userData) {
-        log.info("getBlock");
+        log.debug("getBlock");
         String command = ("echo '{\"run\":\"get_block\"}' | ")
                 .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
         return callFunction(command);
@@ -301,7 +301,7 @@ public class FunctionCaller {
      * @return response: json when request was correct, empty otherwise
      */
     public String getBroadcast(UserData userData, String blockTime) {
-        log.info("getBroadcast");
+        log.debug("getBroadcast");
         String command = String.format("echo '{\"run\":\"get_broadcast\", \"from\":\"%s\"}' | ", blockTime)
                 .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
         return callFunction(command);
@@ -314,7 +314,7 @@ public class FunctionCaller {
      * @return response: json when request was correct, empty otherwise
      */
     public String getMe(UserData userData) {
-        log.info("getMe");
+        log.debug("getMe");
         String command = ("echo '{\"run\":\"get_me\"}' | ")
                 .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
         return callFunction(command);
@@ -338,7 +338,7 @@ public class FunctionCaller {
      * @return response: json when request was correct, empty otherwise
      */
     public String getLog(UserData userData, long fromTimeStamp) {
-        log.info("getLog from {}", fromTimeStamp);
+        log.debug("getLog from {}", fromTimeStamp);
         String command = String.format("echo '{\"run\":\"get_log\", \"from\":\"%d\"}' | ", fromTimeStamp)
                 .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
         return callFunction(command);
@@ -352,7 +352,7 @@ public class FunctionCaller {
      * @return response: json when request was correct, empty otherwise
      */
     public String getLog(UserData userData, LogEventTimestamp logEventTimeStamp) {
-        log.info("getLog from {}", logEventTimeStamp);
+        log.debug("getLog from {}", logEventTimeStamp);
         long timestamp = logEventTimeStamp.getTimestamp();
         String command = String.format("echo '{\"run\":\"get_log\", \"from\":\"%d\"}' | ", timestamp)
                 .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
@@ -383,7 +383,7 @@ public class FunctionCaller {
                             break;
                         }
                         it.remove();
-                        log.debug("REMOVED");
+                        log.trace("event removed");
                     }
 
                     Gson gson = new GsonBuilder().create();
@@ -404,7 +404,7 @@ public class FunctionCaller {
      * @return response: json when request was correct, empty otherwise
      */
     public String retrieveFunds(UserData userData, String remoteAddress) {
-        log.info("retrieveFunds by {} from {}", userData.getAddress(), remoteAddress);
+        log.debug("retrieveFunds by {} from {}", userData.getAddress(), remoteAddress);
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"retrieve_funds\", \"address\":\"%s\"}') | ", remoteAddress)
                 .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
         String output = callFunction(command);
@@ -421,7 +421,7 @@ public class FunctionCaller {
      * @return response: json when request was correct, empty otherwise
      */
     public String sendOne(UserData sender, String receiverAddress, String amount) {
-        log.info("sendOne {}->{}: {}", sender.getAddress(), receiverAddress, amount);
+        log.debug("sendOne {}->{}: {}", sender.getAddress(), receiverAddress, amount);
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"send_one\", \"address\":\"%s\", \"amount\":\"%s\"}') | ", receiverAddress, amount)
                 .concat(escBinary).concat(ESC_BINARY_OPTS).concat(sender.getDataAsEscParams());
         String output = callFunction(command);
@@ -438,7 +438,7 @@ public class FunctionCaller {
      * @return response: json when request was correct, empty otherwise
      */
     public String sendOne(UserData sender, String receiverAddress, String amount, String message) {
-        log.info("sendOne {}->{}: {}, msg: {}", sender.getAddress(), receiverAddress, amount, message);
+        log.debug("sendOne {}->{}: {}, msg: {}", sender.getAddress(), receiverAddress, amount, message);
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"send_one\", \"address\":\"%s\", \"amount\":\"%s\", \"message\":\"%s\"}') | ", receiverAddress, amount, message)
                 .concat(escBinary).concat(ESC_BINARY_OPTS).concat(sender.getDataAsEscParams());
         String output = callFunction(command);
@@ -453,9 +453,9 @@ public class FunctionCaller {
      * @return response: json when request was correct, empty otherwise
      */
     public String sendMany(UserData sender, Map<String, String> receiverMap) {
-        log.info("sendMany {}->", sender.getAddress());
+        log.debug("sendMany {}->", sender.getAddress());
         for (Map.Entry<String, String> entry : receiverMap.entrySet()) {
-            log.info("sendMany ->{}: {}", entry.getKey(), entry.getValue());
+            log.debug("sendMany ->{}: {}", entry.getKey(), entry.getValue());
         }
         Gson gson = new GsonBuilder().create();
         String wires = gson.toJson(receiverMap);
@@ -474,10 +474,10 @@ public class FunctionCaller {
      * @return response: json when request was correct, empty otherwise
      */
     public String sendMany(UserData sender, List<String[]> receiverList) {
-        log.info("sendMany {}->", sender.getAddress());
+        log.debug("sendMany {}->", sender.getAddress());
         StringBuilder sb = new StringBuilder("{");
         for (String[] entry : receiverList) {
-            log.info("sendMany ->{}: {}", entry[0], entry[1]);
+            log.debug("sendMany ->{}: {}", entry[0], entry[1]);
             sb.append("\"");
             sb.append(entry[0]);
             sb.append("\":\"");
@@ -503,7 +503,7 @@ public class FunctionCaller {
      * @return response: json when request was correct, empty otherwise
      */
     public String setAccountStatus(UserData userData, String address, int status) {
-        log.info("setAccountStatus {}->{}: status {} (bin)", userData.getAddress(), address, Integer.toBinaryString(status));
+        log.debug("setAccountStatus {}->{}: status {} (bin)", userData.getAddress(), address, Integer.toBinaryString(status));
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"set_account_status\", \"address\":\"%s\", \"status\":\"%d\"}') | ", address, status)
                 .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
         String output = callFunction(command);
@@ -520,7 +520,7 @@ public class FunctionCaller {
      * @return response: json when request was correct, empty otherwise
      */
     public String setAccountStatus(UserData userData, String address, String status) {
-        log.info("setAccountStatus {}->{}: status {} (bin)", userData.getAddress(), address, status);
+        log.debug("setAccountStatus {}->{}: status {} (bin)", userData.getAddress(), address, status);
         BigInteger bi = new BigInteger(status, 2);
         String statusDec = bi.toString(10);
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"set_account_status\", \"address\":\"%s\", \"status\":\"%s\"}') | ", address, statusDec)
@@ -540,7 +540,7 @@ public class FunctionCaller {
      */
     public String setNodeStatus(UserData userData, String nodeId, int status) {
         int node = Integer.valueOf(nodeId, 16);
-        log.info("setNodeStatus {}->node {} (dec): status {} (bin)", userData.getAddress(), node, Integer.toBinaryString(status));
+        log.debug("setNodeStatus {}->node {} (dec): status {} (bin)", userData.getAddress(), node, Integer.toBinaryString(status));
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"set_node_status\", \"node\":\"%s\", \"status\":\"%d\"}') | ", node, status)
                 .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
         String output = callFunction(command);
@@ -558,7 +558,7 @@ public class FunctionCaller {
      */
     public String setNodeStatus(UserData userData, String nodeId, String status) {
         int node = Integer.valueOf(nodeId, 16);
-        log.info("setNodeStatus {}->node {} (dec): status {} (bin)", userData.getAddress(), node, status);
+        log.debug("setNodeStatus {}->node {} (dec): status {} (bin)", userData.getAddress(), node, status);
         BigInteger bi = new BigInteger(status, 2);
         String statusDec = bi.toString(10);
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"set_node_status\", \"node\":\"%s\", \"status\":\"%s\"}') | ", node, statusDec)
@@ -577,7 +577,7 @@ public class FunctionCaller {
      * @return response: json when request was correct, empty otherwise
      */
     public String unsetAccountStatus(UserData userData, String address, int status) {
-        log.info("unsetAccountStatus {}->{}: status {} (bin)", userData.getAddress(), address, Integer.toBinaryString(status));
+        log.debug("unsetAccountStatus {}->{}: status {} (bin)", userData.getAddress(), address, Integer.toBinaryString(status));
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"unset_account_status\", \"address\":\"%s\", \"status\":\"%d\"}') | ", address, status)
                 .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
         String output = callFunction(command);
@@ -594,7 +594,7 @@ public class FunctionCaller {
      * @return response: json when request was correct, empty otherwise
      */
     public String unsetAccountStatus(UserData userData, String address, String status) {
-        log.info("unsetAccountStatus {}->{}: status {} (bin)", userData.getAddress(), address, status);
+        log.debug("unsetAccountStatus {}->{}: status {} (bin)", userData.getAddress(), address, status);
         BigInteger bi = new BigInteger(status, 2);
         String statusDec = bi.toString(10);
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"unset_account_status\", \"address\":\"%s\", \"status\":\"%s\"}') | ", address, statusDec)
@@ -614,7 +614,7 @@ public class FunctionCaller {
      */
     public String unsetNodeStatus(UserData userData, String nodeId, int status) {
         int node = Integer.valueOf(nodeId, 16);
-        log.info("unsetNodeStatus {}->node {} (dec): status {} (bin)", userData.getAddress(), node, Integer.toBinaryString(status));
+        log.debug("unsetNodeStatus {}->node {} (dec): status {} (bin)", userData.getAddress(), node, Integer.toBinaryString(status));
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"unset_node_status\", \"node\":\"%s\", \"status\":\"%d\"}') | ", node, status)
                 .concat(escBinary).concat(ESC_BINARY_OPTS).concat(userData.getDataAsEscParams());
         String output = callFunction(command);
@@ -632,7 +632,7 @@ public class FunctionCaller {
      */
     public String unsetNodeStatus(UserData userData, String nodeId, String status) {
         int node = Integer.valueOf(nodeId, 16);
-        log.info("unsetNodeStatus {}->node {} (dec): status {} (bin)", userData.getAddress(), node, status);
+        log.debug("unsetNodeStatus {}->node {} (dec): status {} (bin)", userData.getAddress(), node, status);
         BigInteger bi = new BigInteger(status, 2);
         String statusDec = bi.toString(10);
         String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"unset_node_status\", \"node\":\"%s\", \"status\":\"%s\"}') | ", node, statusDec)
@@ -661,7 +661,7 @@ public class FunctionCaller {
         if (cmd.length() < 12000) {
             cmdLine.addArgument("-c").addArgument(cmd, false);
         } else {
-            log.info("command length {}", cmd.length());
+            log.debug("command length {}", cmd.length());
             // when command is too long it is not possible to call it using sh shell
             // command is saved to file and file is new command
 
@@ -716,7 +716,7 @@ public class FunctionCaller {
         JsonObject o = Utils.convertStringToJsonObject(getLog(userData));
 
         LogEventTimestamp let = EscUtils.getLastLogEventTimestamp(o);
-        log.info("last log event time: {} ({}) for {}", let, Utils.formatSecondsAsDate(let.getTimestamp()),
+        log.debug("last log event time: {} ({}) for {}", let, Utils.formatSecondsAsDate(let.getTimestamp()),
                 o.getAsJsonObject("account").get("address").getAsString());
         return let;
     }
@@ -739,7 +739,7 @@ public class FunctionCaller {
                     .msg("NullPointerException").build();
             Assert.fail(msg);
         }
-        log.info("user {} balance: {}", userData.getAddress(), balance.toPlainString());
+        log.debug("user {} balance: {}", userData.getAddress(), balance.toPlainString());
         return balance;
     }
 
