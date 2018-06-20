@@ -113,6 +113,7 @@ public class RetrieveFundsStepDefs {
             log.error("Sleep interrupted");
             log.error(e.toString());
         }
+        log.info("Account was not active for {} s.", EscConst.BLOCK_PERIOD * EscConst.BLOCK_DIVIDEND);
     }
 
     @Then("^after processing time inactive account is empty$")
@@ -165,7 +166,8 @@ public class RetrieveFundsStepDefs {
         BigDecimal balanceRetrieveEvents = lc.getBalanceFromLogArray(lf);
         // check retrieve_funds events
         JsonArray arr = lc.getFilteredLogArray(lf);
-        log.debug("size = {}", arr.size());
+        reason = new AssertReason.Builder().msg("Invalid number of retrieve_funds events.").res(lastResp).build();
+        assertThat(reason, arr.size(), equalTo(4));
         for (int i = 0; i < 4; i++) {
             JsonObject o = arr.get(i).getAsJsonObject();
 

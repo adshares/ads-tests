@@ -348,6 +348,7 @@ public class StatusStepDefs {
                     }
                 }
 
+                log.info("Performed change {} of node status bit ({}-{}).", i + 1, startBit, curBit - 1);
             }
 
             for (Integer k : statusChangeCountMap.keySet()) {
