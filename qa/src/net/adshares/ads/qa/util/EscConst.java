@@ -99,6 +99,10 @@ public class EscConst {
      */
     public static final BigDecimal UNSET_USER_STATUS_FEE = new BigDecimal("0.00010000000");
     /**
+     * TXS_SAV_FEE log account fee
+     */
+    public static final BigDecimal LOG_ACCOUNT_FEE = new BigDecimal("0.00010000000");
+    /**
      * VIP_MAX maximum number of vip nodes
      */
     static final int VIP_MAX = 7;

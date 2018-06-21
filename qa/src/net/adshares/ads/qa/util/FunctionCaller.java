@@ -405,6 +405,19 @@ public class FunctionCaller {
     }
 
     /**
+     * Calls log_account function.
+     *
+     * @param userData user data
+     * @return response: json when request was correct, empty otherwise
+     */
+    public String logAccount(UserData userData) {
+        log.debug("logAccount");
+        String command = ("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"log_account\"}') | ")
+                .concat(clientApp).concat(clientAppOpts).concat(userData.getDataAsEscParams());
+        return callFunction(command).replaceFirst(DOUBLE_RESP_REGEX, "{");
+    }
+
+    /**
      * Calls retrieve_funds function.
      *
      * @param userData      data of user, who will retrieve funds

@@ -101,6 +101,7 @@ public class LogChecker {
                         || "send_one".equals(type) || "send_many".equals(type)
                         || "broadcast".equals(type) // type_no == 3
                         || ("retrieve_funds".equals(type) && "8".equals(typeNo)) // retrieve_funds call
+                        || "log_account".equals(type) // type_no == 15
                         || ("create_node".equals(type) && "7".equals(typeNo))) {// create_node request
                     amount = logEntry.get("amount").getAsBigDecimal();
                     if (logEntry.has("inout") && "out".equals(logEntry.get("inout").getAsString())) {

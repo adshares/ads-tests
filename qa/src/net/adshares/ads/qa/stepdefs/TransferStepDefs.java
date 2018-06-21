@@ -483,25 +483,6 @@ public class TransferStepDefs {
         }
     }
 
-    @Given("user log")
-    public void user_log() {
-        FunctionCaller fc = FunctionCaller.getInstance();
-        LogChecker lc = new LogChecker();
-        List<UserData> userDataList = UserDataProvider.getInstance().getUserDataList();
-
-        for (UserData user : userDataList) {
-            String userLog = fc.getLog(user);
-
-            final String userAddress = user.getAddress();
-            log.trace(userAddress);
-            lc.setResp(userLog);
-            String reason = new AssertReason.Builder().req(fc.getLastRequest()).res(fc.getLastResponse())
-                    .msg("Balance is different than sum of logged events in account " + userAddress).build();
-            assertThat(reason, lc.isBalanceFromObjectEqualToArray());
-            log.trace("success");
-        }
-    }
-
     /**
      * Returns transfer fee in tokens.
      *
