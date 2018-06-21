@@ -93,6 +93,7 @@ public class NodeStepDefs {
         int attempt = 0;
         int attemptMax = 100;
         while (attempt++ < attemptMax) {
+            log.info("Waiting for node start {}.", attempt);
             String resp = FunctionCaller.getInstance().getBlock(UserDataProvider.getInstance().getUserDataList(1).get(0));
             JsonObject o = Utils.convertStringToJsonObject(resp);
             JsonArray arr = o.getAsJsonObject("block").getAsJsonArray("nodes");
