@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import java.io.*;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -804,24 +805,45 @@ public class FunctionCaller {
         }
         assertThat("Missing node0001 options.cfg.", !"".equals(optFileContent));
 
-        String[] arr = optFileContent.split("\n");
-        //svid
-        arr[0] = "svid=" + node;
-        //offi
-        int offi = Integer.valueOf(arr[1].split("=")[1]) + node - 1;
-        arr[1] = "offi=" + offi;
-        // port
-        int port = Integer.valueOf(arr[2].split("=")[1]) + node - 1;
-        arr[2] = "port=" + port;
-        // address is the same
-        // peers are the same
-        optFileContent = String.join("\n", arr);
+        String[] lines = optFileContent.split("\n");
+        Map<String, String> optionMap = new HashMap<>();
+        for (String line : lines) {
+            if (line.lastIndexOf("=") != -1) {
+                String[] arr = line.split("=");
+                optionMap.put(arr[0], arr[1]);
+            }
+        }
+
+        String node1Addr = optionMap.get("addr");
+        assertThat("Missing `addr` in node0001 options.cfg.", node1Addr, notNullValue());
+        // port for clients
+        String node1OfficePort = optionMap.get("offi");
+        assertThat("Missing `offi` in node0001 options.cfg.", node1OfficePort, notNullValue());
+        //port for peers
+        String node1Port = optionMap.get("port");
+        assertThat("Missing `port` in node0001 options.cfg.", node1Port, notNullValue());
+
+        optionMap.put("svid", String.valueOf(node));
+        int offi = Integer.valueOf(node1OfficePort) + node - 1;
+        optionMap.put("offi", String.valueOf(offi));
+        int port = Integer.valueOf(node1Port) + node - 1;
+        optionMap.put("port", String.valueOf(port));
+        optionMap.put("peer", node1Addr + ":" + node1Port);
+
+        StringBuilder sb = new StringBuilder();
+        for (String key : optionMap.keySet()) {
+            sb.append(key);
+            sb.append("=");
+            sb.append(optionMap.get(key));
+            sb.append("\n");
+        }
+        optFileContent = sb.toString();
+
         String optFileName = path + "options.cfg";
         callFunction(sysCmdPrefix.concat("sh -c \"echo '" + optFileContent + "' > " + optFileName + "\""));
 
         // start node
-        callFunction(sysCmdPrefix.concat("sh -c \"cd " + path + ";adsd -f 1 >stdout 2>stderr &\""));
-
+        callFunction(sysCmdPrefix.concat("sh -c \"adsd -f 1 -w " + path + " >stdout 2>stderr &\""));
     }
 
     /**
