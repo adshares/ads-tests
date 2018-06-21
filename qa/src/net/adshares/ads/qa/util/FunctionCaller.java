@@ -785,7 +785,7 @@ public class FunctionCaller {
         }
 
         if (!keyFileContent.contains(privateKey)) {
-            callFunction(sysCmdPrefix.concat("sh -c \"echo '" + privateKey + "' >> " + keyFileName + "\""));
+            callFunction(sysCmdPrefix.concat("sh -c \"echo '\n" + privateKey + "' >> " + keyFileName + "\""));
         }
     }
 
