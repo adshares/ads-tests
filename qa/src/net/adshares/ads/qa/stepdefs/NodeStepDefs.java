@@ -166,6 +166,19 @@ public class NodeStepDefs {
         assertThat("Cannot find user, who will change node key.", userData, notNullValue());
     }
 
+    @Given("^vip user, who wants to change own node key$")
+    public void vip_user_who_change_own_node_key() {
+        userData = null;
+        List<UserData> userDataList = UserDataProvider.getInstance().getUserDataList();
+        for (UserData u : userDataList) {
+            if (u.isMainAccount() && EscUtils.isStatusVip(EscUtils.getNodeStatus(u, u.getNodeId()))) {
+                userData = u;
+                break;
+            }
+        }
+        assertThat("Cannot find user, who will change node key.", userData, notNullValue());
+    }
+
     @When("^user changes own node key$")
     public void user_changes_own_node_key() {
         FunctionCaller fc = FunctionCaller.getInstance();

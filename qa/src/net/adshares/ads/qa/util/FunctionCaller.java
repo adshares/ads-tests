@@ -247,7 +247,7 @@ public class FunctionCaller {
                 int vipNodeCount = 0;
                 for (JsonElement je : arr) {
                     int status = je.getAsJsonObject().get("status").getAsInt();
-                    if ((status & 2) != 0) {
+                    if (EscUtils.isStatusVip(status)) {
                         ++vipNodeCount;
                     }
                 }
@@ -287,6 +287,19 @@ public class FunctionCaller {
     private String getBlockSingleCall(UserData userData) {
         log.debug("getBlock");
         String command = ("echo '{\"run\":\"get_block\"}' | ")
+                .concat(clientApp).concat(clientAppOpts).concat(userData.getDataAsEscParams());
+        return callFunction(command);
+    }
+
+    /**
+     * Calls get_blocks function.
+     *
+     * @param userData user data
+     * @return response: json when request was correct, empty otherwise
+     */
+    public String getBlocks(UserData userData) {
+        log.debug("getBlocks");
+        String command = ("echo '{\"run\":\"get_blocks\"}' | ")
                 .concat(clientApp).concat(clientAppOpts).concat(userData.getDataAsEscParams());
         return callFunction(command);
     }
@@ -402,6 +415,34 @@ public class FunctionCaller {
         }
 
         return resp;
+    }
+
+    /**
+     * Calls get_transaction function.
+     *
+     * @param userData user data
+     * @param txid     transaction id
+     * @return response: json when request was correct, empty otherwise
+     */
+    public String getTransaction(UserData userData, String txid) {
+        log.debug("getTransaction {}", txid);
+        String command = String.format("echo '{\"run\":\"get_transaction\", \"txid\":\"%s\"}' | ", txid)
+                .concat(clientApp).concat(clientAppOpts).concat(userData.getDataAsEscParams());
+        return callFunction(command);
+    }
+
+    /**
+     * Calls get_vipkeys function.
+     *
+     * @param userData user data
+     * @param vipHash  vip hash
+     * @return response: json when request was correct, empty otherwise
+     */
+    public String getVipKeys(UserData userData, String vipHash) {
+        log.debug("getVipKeys for vip hash {}", vipHash);
+        String command = String.format("echo '{\"run\":\"get_vipkeys\", \"viphash\":\"%s\"}' | ", vipHash)
+                .concat(clientApp).concat(clientAppOpts).concat(userData.getDataAsEscParams());
+        return callFunction(command);
     }
 
     /**

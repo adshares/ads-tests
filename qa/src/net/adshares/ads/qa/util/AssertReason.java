@@ -25,24 +25,26 @@ public class AssertReason {
         public Builder() {}
 
         public String build() {
-            StringBuilder sb = new StringBuilder("\n");
+            StringBuilder sb = new StringBuilder();
 
             // request
             if (request != null) {
+                sb.append(System.lineSeparator());
                 sb.append("request:");
                 sb.append(request);
-                sb.append(System.lineSeparator());
             }
             // response
             if (response != null) {
+                sb.append(System.lineSeparator());
                 sb.append("response:");
                 sb.append(response);
+            }
+            if (request != null || response != null) {
                 sb.append(System.lineSeparator());
             }
             // message
             if (message != null) {
                 sb.append(message);
-                sb.append(System.lineSeparator());
             }
 
             return sb.toString();
