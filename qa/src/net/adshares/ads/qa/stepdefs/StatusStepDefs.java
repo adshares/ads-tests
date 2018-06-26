@@ -42,6 +42,15 @@ public class StatusStepDefs {
 
     private boolean isTransactionAccepted;
 
+    /**
+     * Columns:<br />
+     * 1. address requested,<br />
+     * 2. caller address,<br />
+     * 3. response.
+     */
+    private String[][] getAccountResponses;
+    private List<UserData> userDataList;
+
     @Given("^(main|regular) account user, who wants to change (own|local|remote) account status$")
     public void user_who_wants_to_change_status(String accountType, String otherAccountType) {
 
@@ -100,7 +109,7 @@ public class StatusStepDefs {
             // remote
             for (UserData u1 : userDataList) {
                 boolean isMainU1 = u1.isMainAccount();
-                boolean isVipU1 = isMainU1 && ((statusMap.get(u1.getAddress().substring(0, 4)) & 2) != 0);
+                boolean isVipU1 = isMainU1 && EscUtils.isStatusVip(statusMap.get(u1.getNodeId()));
 
                 if ((isVip && isVipU1) || (isMain && isMainU1 && !isVipU1) || (!(isMain || isVip) && !isMainU1)) {
                     Set<UserData> uSet = new HashSet<>();
@@ -126,9 +135,9 @@ public class StatusStepDefs {
             // own
             for (UserData u1 : userDataList) {
                 boolean isMainU1 = u1.isMainAccount();
-                boolean isVipU1 = isMainU1 && ((statusMap.get(u1.getAddress().substring(0, 4)) & 2) != 0);
+                boolean isVipU1 = isMainU1 && EscUtils.isStatusVip(statusMap.get(u1.getNodeId()));
                 if ((isVip && isVipU1) || (isMain && isMainU1 && !isVipU1) || (!(isMain || isVip) && !isMainU1)) {
-                    String nodeId = u1.getAddress().substring(0, 4);
+                    String nodeId = u1.getNodeId();
                     Set<UserData> uSet = new HashSet<>();
                     uSet.add(u1);
                     chgNodePairList.add(new ChangeNodePair(uSet, nodeId));
@@ -181,6 +190,11 @@ public class StatusStepDefs {
                     assertThat(reason, isExpectedErrorDesc);
 
                 } else {
+                    if (!EscUtils.isTransactionAcceptedByNode(o)) {
+                        Assert.fail(new AssertReason.Builder()
+                                .msg("User status change was not accepted by node.").build());
+                    }
+
                     String reason;
                     //check fee
                     BigDecimal fee = o.getAsJsonObject("tx").get("fee").getAsBigDecimal();
@@ -288,6 +302,11 @@ public class StatusStepDefs {
                                     .msg("Unexpected error during node status change: " + errorDesc).build();
                             assertThat(reason, isExpectedErrorDesc);
                         } else {
+                            if (!EscUtils.isTransactionAcceptedByNode(o)) {
+                                Assert.fail(new AssertReason.Builder()
+                                        .msg("Node status change was not accepted by node.").build());
+                            }
+
                             String reason;
                             //check fee
                             BigDecimal fee = o.getAsJsonObject("tx").get("fee").getAsBigDecimal();
@@ -509,6 +528,78 @@ public class StatusStepDefs {
                 .res(FunctionCaller.getInstance().getLastResponse())
                 .build();
         assertThat(reason, !isTransactionAccepted);
+    }
+
+    @Given("^(\\d+) users, who will check get_account function$")
+    public void users_who_will_check_get_account_function(int userCount) {
+        userDataList = UserDataProvider.getInstance().getUserDataFromDifferentNodes(userCount);
+    }
+
+    @When("^they call get_account$")
+    public void they_call_get_account() {
+        FunctionCaller fc = FunctionCaller.getInstance();
+        getAccountResponses = new String[3][userDataList.size() * userDataList.size()];
+        int row = 0;
+        for (UserData userCalled : userDataList) {
+            String requestedAddress = userCalled.getAddress();
+            for (UserData userCaller : userDataList) {
+                String callerAddress = userCaller.getAddress();
+                String resp = fc.getAccount(userCaller, requestedAddress);
+                getAccountResponses[0][row] = requestedAddress;
+                getAccountResponses[1][row] = callerAddress;
+                getAccountResponses[2][row] = resp;
+                ++row;
+            }
+        }
+    }
+
+    @Then("^all get_account responses are correct$")
+    public void all_get_account_responses_are_correct() {
+        int rows = userDataList.size() * userDataList.size();
+        // last row doesn't need to be compared
+        for (int row = 0; row < rows - 1; row++) {
+            String requestedAddress1 = getAccountResponses[0][row];
+            String callerAddress1 = getAccountResponses[1][row];
+            String resp1 = getAccountResponses[2][row];
+
+            for (int crow = row + 1; crow < rows; crow++) {
+                if (!requestedAddress1.equals(getAccountResponses[0][crow])) {
+                    continue;
+                }
+
+                String callerAddress2 = getAccountResponses[1][crow];
+                String resp2 = getAccountResponses[2][crow];
+
+                JsonObject respAccount1 = Utils.convertStringToJsonObject(resp1).getAsJsonObject("network_account");
+                JsonObject respAccount2 = Utils.convertStringToJsonObject(resp2).getAsJsonObject("network_account");
+
+                if (!respAccount1.equals(respAccount2)) {
+                    AssertReason.Builder arb = new AssertReason.Builder().msg("Requested account " + requestedAddress1)
+                            .msg("by1: " + callerAddress1).msg("resp1: " + resp1)
+                            .msg("by2: " + callerAddress2).msg("resp2: " + resp2);
+
+                    if (respAccount1.size() != respAccount2.size()) {
+                        Assert.fail(arb.msg("Different number of keys in JsonObject.").build());
+                    } else {
+                        for (String key1 : respAccount1.keySet()) {
+                            if (!respAccount2.has(key1)) {
+                                Assert.fail(arb.msg("Missing key: " + key1).build());
+                            } else {
+                                String val1 = respAccount1.get(key1).getAsString();
+                                String val2 = respAccount2.get(key1).getAsString();
+
+                                if (!val1.equals(val2)) {
+                                    Assert.fail(arb.msg("Different value of key: " + key1)
+                                            .msg("in resp1: " + val1).msg("in resp2: " + val2).build());
+                                }
+                            }
+                        }
+                    }
+                    Assert.fail(arb.msg("Difference not recognized.").build());
+                }
+            }
+        }
+
     }
 
     class ChangeNodePair {
