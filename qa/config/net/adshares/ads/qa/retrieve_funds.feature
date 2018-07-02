@@ -29,3 +29,6 @@ Feature: Retrieve funds
 
   Scenario: Check log
     Given user log
+
+  Scenario: Check transaction
+    Given transaction ids

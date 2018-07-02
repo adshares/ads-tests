@@ -1,6 +1,11 @@
 @status
 Feature: Status features
 
+  Scenario: Check get_account function
+    Given 2 users, who will check get_account function
+    When they call get_account
+    Then all get_account responses are correct
+
   Scenario Outline: Set account status <type_a> -> <type_b>
     Given <type_a> account user, who wants to change <type_b> account status
     When user changes account status
@@ -39,3 +44,6 @@ Feature: Status features
 
   Scenario: Check log
     Given user log
+
+  Scenario: Check transaction
+    Given transaction ids

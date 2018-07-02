@@ -3,6 +3,7 @@ package net.adshares.ads.qa.util;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import net.adshares.ads.qa.data.UserData;
 
 import javax.xml.bind.DatatypeConverter;
 import java.util.Random;
@@ -26,7 +27,11 @@ public class EscUtils {
             return false;
         }
         jsonObject = jsonObject.getAsJsonObject("tx");
-        return jsonObject.has("id");
+        boolean hasId = jsonObject.has("id");
+        if (hasId) {
+            TransactionIdChecker.getInstance().addTransactionId(jsonObject.get("id").getAsString());
+        }
+        return hasId;
     }
 
     /**
@@ -112,6 +117,39 @@ public class EscUtils {
         int time = Integer.parseInt(blockTime, 16);
         time += EscConst.BLOCK_PERIOD;
         return Integer.toHexString(time);
+    }
+
+    /**
+     * Gets node status from get_block function response.
+     *
+     * @param userData user data
+     * @param nodeId   node id
+     * @return node status, or -1, if error occur
+     */
+    public static int getNodeStatus(UserData userData, String nodeId) {
+        int status = -1;
+        String resp = FunctionCaller.getInstance().getBlock(userData);
+        JsonObject o = Utils.convertStringToJsonObject(resp);
+        JsonArray arr = o.getAsJsonObject("block").getAsJsonArray("nodes");
+        for (JsonElement je : arr) {
+            JsonObject nodeEntry = je.getAsJsonObject();
+            if (nodeId.equals(nodeEntry.get("id").getAsString())) {
+                status = nodeEntry.get("status").getAsInt();
+                break;
+            }
+        }
+
+        return status;
+    }
+
+    /**
+     * Checks, if status matches vip status.
+     *
+     * @param status node status
+     * @return true if node status matches vip status, false otherwise
+     */
+    public static boolean isStatusVip(int status) {
+        return (status & 2) != 0;
     }
 
     /**

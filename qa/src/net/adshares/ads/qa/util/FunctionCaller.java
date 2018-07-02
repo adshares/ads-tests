@@ -239,7 +239,7 @@ public class FunctionCaller {
             if (o.has("error")) {
                 String errorDesc = o.get("error").getAsString();
                 log.debug("Error occurred: {}", errorDesc);
-                assertThat("Unexpected error after account creation.", errorDesc,
+                assertThat("Unexpected error for get_block request.", errorDesc,
                         equalTo(EscConst.Error.GET_BLOCK_INFO_FAILED));
             } else {
                 JsonArray arr = o.getAsJsonObject("block").getAsJsonArray("nodes");
@@ -248,7 +248,7 @@ public class FunctionCaller {
                 int vipNodeCount = 0;
                 for (JsonElement je : arr) {
                     int status = je.getAsJsonObject().get("status").getAsInt();
-                    if ((status & 2) != 0) {
+                    if (EscUtils.isStatusVip(status)) {
                         ++vipNodeCount;
                     }
                 }
@@ -292,6 +292,19 @@ public class FunctionCaller {
         return callFunction(command);
     }
 
+    /**
+     * Calls get_blocks function.
+     *
+     * @param userData user data
+     * @return response: json when request was correct, empty otherwise
+     */
+    public String getBlocks(UserData userData) {
+        log.debug("getBlocks");
+        String command = ("echo '{\"run\":\"get_blocks\"}' | ")
+                .concat(clientApp).concat(clientAppOpts).concat(userData.getDataAsEscParams());
+        return callFunction(command);
+    }
+
 //    /**
 //     * Calls get_broadcast function, which gets broadcast messages from last block.
 //     *
@@ -306,7 +319,7 @@ public class FunctionCaller {
      * Calls get_broadcast function, which gets broadcast messages from block.
      *
      * @param userData  user data
-     * @param blockTime block time in Unix Epoch seconds, 0 for last block
+     * @param blockTime block time in Unix Epoch seconds as hexadecimal String, 0 for last block
      * @return response: json when request was correct, empty otherwise
      */
     public String getBroadcast(UserData userData, String blockTime) {
@@ -325,6 +338,38 @@ public class FunctionCaller {
     public String getMe(UserData userData) {
         log.debug("getMe");
         String command = ("echo '{\"run\":\"get_me\"}' | ")
+                .concat(clientApp).concat(clientAppOpts).concat(userData.getDataAsEscParams());
+        return callFunction(command);
+    }
+
+    /**
+     * Calls get_message function.
+     *
+     * @param userData  user data
+     * @param blockTime block time in Unix Epoch seconds as hexadecimal String
+     * @param node      node id
+     * @param nodeMsid  message id assigned by node
+     * @return response: json when request was correct, empty otherwise
+     */
+    public String getMessage(UserData userData, String blockTime, int node, int nodeMsid) {
+        log.debug("getMessage");
+        String command = String.format(
+                "echo '{\"run\":\"get_message\", \"block\":\"%s\", \"node\":%d, \"node_msid\":%d}' | ",
+                blockTime, node, nodeMsid)
+                .concat(clientApp).concat(clientAppOpts).concat(userData.getDataAsEscParams());
+        return callFunction(command);
+    }
+
+    /**
+     * Calls get_message_list function.
+     *
+     * @param userData  user data
+     * @param blockTime block time in Unix Epoch seconds as hexadecimal String
+     * @return response: json when request was correct, empty otherwise
+     */
+    public String getMessageList(UserData userData, String blockTime) {
+        log.debug("getMessageList");
+        String command = String.format("echo '{\"run\":\"get_message_list\", \"block\":\"%s\"}' | ", blockTime)
                 .concat(clientApp).concat(clientAppOpts).concat(userData.getDataAsEscParams());
         return callFunction(command);
     }
@@ -403,6 +448,91 @@ public class FunctionCaller {
         }
 
         return resp;
+    }
+
+    /**
+     * Wrapper for get_transaction function. Transaction information is not available for short time after execute,
+     * therefore this function calls get_transaction few times.
+     *
+     * @param userData user data
+     * @param txid     transaction id
+     * @return response: json when request was correct, empty otherwise
+     */
+    public String getTransaction(UserData userData, String txid) {
+        String resp = null;
+
+        // transaction info is not available for short time after transaction commit,
+        // expected delay is longer after node creation,
+        // therefore there is delay - it cannot be "wait for next block"
+        int attempt = 0;
+        final long delay = EscConst.BLOCK_PERIOD_MS;
+        final int attemptMax = 3;
+        log.trace("attemptMax = {}", attemptMax);
+        while (attempt++ < attemptMax) {
+            getBlocks(userData);
+            resp = getTransactionSingleCall(userData, txid);
+            JsonObject o = Utils.convertStringToJsonObject(resp);
+            if (o.has("error")) {
+                String errorDesc = o.get("error").getAsString();
+                log.debug("Error occurred: {}", errorDesc);
+
+                boolean isExpectedError = EscConst.Error.FAILED_TO_PROVIDE_TX_INFO.equals(errorDesc)
+                        || EscConst.Error.FAILED_TO_LOAD_HASH.equals(errorDesc);
+                assertThat("Unexpected error for get_transaction request: " + errorDesc, isExpectedError);
+                assertThat("Cannot get transaction info after delay.", attempt < attemptMax);
+                try {
+                    Thread.sleep(delay);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            } else {
+                return resp;
+            }
+        }
+
+        assertThat("Cannot get response.", resp, notNullValue());
+        return resp;
+    }
+
+    /**
+     * Calls get_transaction function.
+     *
+     * @param userData user data
+     * @param txid     transaction id
+     * @return response: json when request was correct, empty otherwise
+     */
+    private String getTransactionSingleCall(UserData userData, String txid) {
+        log.debug("getTransaction {}", txid);
+        String command = String.format("echo '{\"run\":\"get_transaction\", \"txid\":\"%s\"}' | ", txid)
+                .concat(clientApp).concat(clientAppOpts).concat(userData.getDataAsEscParams());
+        return callFunction(command);
+    }
+
+    /**
+     * Calls get_vipkeys function.
+     *
+     * @param userData user data
+     * @param vipHash  vip hash
+     * @return response: json when request was correct, empty otherwise
+     */
+    public String getVipKeys(UserData userData, String vipHash) {
+        log.debug("getVipKeys for vip hash {}", vipHash);
+        String command = String.format("echo '{\"run\":\"get_vipkeys\", \"viphash\":\"%s\"}' | ", vipHash)
+                .concat(clientApp).concat(clientAppOpts).concat(userData.getDataAsEscParams());
+        return callFunction(command);
+    }
+
+    /**
+     * Calls log_account function.
+     *
+     * @param userData user data
+     * @return response: json when request was correct, empty otherwise
+     */
+    public String logAccount(UserData userData) {
+        log.debug("logAccount");
+        String command = ("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"log_account\"}') | ")
+                .concat(clientApp).concat(clientAppOpts).concat(userData.getDataAsEscParams());
+        return callFunction(command).replaceFirst(DOUBLE_RESP_REGEX, "{");
     }
 
     /**
