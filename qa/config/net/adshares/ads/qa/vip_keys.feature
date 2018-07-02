@@ -11,7 +11,7 @@ Feature: Vip key features
     And user, who wants to check vip keys
     And user checks vip keys
     When user changes own node key
-    And user checks vip keys
+    And after delay user checks vip keys
     Then vip keys are changed
     And all vip keys are correct
 

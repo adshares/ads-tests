@@ -8,10 +8,7 @@ import cucumber.api.java.en.Then;
 import cucumber.api.java.en.When;
 import net.adshares.ads.qa.data.UserData;
 import net.adshares.ads.qa.data.UserDataProvider;
-import net.adshares.ads.qa.util.AssertReason;
-import net.adshares.ads.qa.util.EscUtils;
-import net.adshares.ads.qa.util.FunctionCaller;
-import net.adshares.ads.qa.util.Utils;
+import net.adshares.ads.qa.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,9 +16,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.*;
 
 public class VipKeyStepDefs {
 
@@ -37,9 +32,18 @@ public class VipKeyStepDefs {
         userData = UserDataProvider.getInstance().getUserDataList(1).get(0);
     }
 
-    @When("^user checks vip keys$")
-    public void user_checks_vip_keys() {
+    @When("^(after delay )?user checks vip keys$")
+    public void user_checks_vip_keys(String delay) {
         previousVipKeyList = vipKeyList;
+        boolean isDelay = "after delay ".equals(delay);
+        if (isDelay) {
+            try {
+                Thread.sleep(EscConst.BLOCK_PERIOD_MS);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+
         FunctionCaller fc = FunctionCaller.getInstance();
 
         String resp;
@@ -56,7 +60,7 @@ public class VipKeyStepDefs {
         vipKeyList = new ArrayList<>();
         arr = o.getAsJsonArray("vipkeys");
         for (JsonElement je : arr) {
-            vipKeyList.add(je.getAsString());
+            vipKeyList.add(je.getAsJsonObject().get("public_key").getAsString());
         }
 
         // special node 0 is on the list but it is shouldn't be counted in total
@@ -100,10 +104,10 @@ public class VipKeyStepDefs {
             log.trace(s);
         }
         String reason;
+        // check, if key changed
         reason = new AssertReason.Builder().msg("Vip keys was not changed.")
                 .req(FunctionCaller.getInstance().getLastRequest()).res(FunctionCaller.getInstance().getLastResponse())
                 .build();
-        assertThat(reason, vipKeyList,
-                not(containsInAnyOrder(previousVipKeyList.toArray(new String[0]))));
+        assertThat(reason, vipKeyList, not(containsInAnyOrder(previousVipKeyList.toArray(new String[0]))));
     }
 }
