@@ -26,7 +26,8 @@ Available test categories are:
 * `non_existent` - transaction to non-existent user or node,
 * `account` - change account key, and create account in local and remote node,
 * `node` - change node key, create node,
-* `status` - change account/node status.
+* `status` - change account/node status,
+* `vip_key` - check vip keys.
 
 By default all tests will be run. To run specific category of tests `cucumber.options` must be defined. Below is example to run `transfer` tests:
 ```
