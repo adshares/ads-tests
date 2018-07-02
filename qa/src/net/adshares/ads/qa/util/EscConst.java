@@ -59,7 +59,7 @@ public class EscConst {
      */
     public static final BigDecimal MULTI_TX_FEE_COEFFICIENT = new BigDecimal("0.0005");
     /**
-     * ~TXS_MINMPT_FEE minumum fee for send_many is bigger for every recipient above 10
+     * ~TXS_MINMPT_FEE minimum fee for send_many is bigger for every recipient above 10
      */
     public static final BigDecimal MIN_MULTI_TX_PER_RECIPIENT = new BigDecimal("0.00000001000");
     /**
@@ -114,6 +114,7 @@ public class EscConst {
         public static final String BROADCAST_NOT_READY = "Broadcast not ready, try again later";
         public static final String BROADCAST_NO_FILE_TO_SEND = "No broadcast file to send";
         public static final String CREATE_ACCOUNT_BAD_TIMING = "Bad timing for remote account request, try again later.";
+        public static final String FAILED_TO_PROVIDE_TX_INFO = "Failed to provide transaction info. Try again later.";
         public static final String GET_GLOBAL_USER_FAILED = "Failed to get global user info";
         public static final String GET_BLOCK_INFO_FAILED = "Block info is unavailable";
         public static final String MATCH_SECRET_KEY_NOT_FOUND = "Matching secret key not found";

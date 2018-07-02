@@ -238,7 +238,7 @@ public class FunctionCaller {
             if (o.has("error")) {
                 String errorDesc = o.get("error").getAsString();
                 log.debug("Error occurred: {}", errorDesc);
-                assertThat("Unexpected error after account creation.", errorDesc,
+                assertThat("Unexpected error for get_block request.", errorDesc,
                         equalTo(EscConst.Error.GET_BLOCK_INFO_FAILED));
             } else {
                 JsonArray arr = o.getAsJsonObject("block").getAsJsonArray("nodes");
@@ -418,13 +418,57 @@ public class FunctionCaller {
     }
 
     /**
+     * Wrapper for get_transaction function. Transaction information is not available for short time after execute,
+     * therefore this function calls get_transaction few times.
+     *
+     * @param userData user data
+     * @param txid     transaction id
+     * @return response: json when request was correct, empty otherwise
+     */
+    String getTransaction(UserData userData, String txid) {
+        String resp = null;
+
+        // transaction info is not available for short time after transaction commit,
+        // expected delay is longer after node creation,
+        // therefore there is delay - it cannot be "wait for next block"
+        int attempt = 0;
+        final long delay = EscConst.BLOCK_PERIOD_MS;
+        final int attemptMax = 3;
+        log.trace("attemptMax = {}", attemptMax);
+        while (attempt++ < attemptMax) {
+            getBlocks(userData);
+            resp = getTransactionSingleCall(userData, txid);
+            JsonObject o = Utils.convertStringToJsonObject(resp);
+            if (o.has("error")) {
+                String errorDesc = o.get("error").getAsString();
+                log.debug("Error occurred: {}", errorDesc);
+
+                assertThat("Unexpected error for get_transaction request.", errorDesc,
+                        equalTo(EscConst.Error.FAILED_TO_PROVIDE_TX_INFO));
+
+                assertThat("Cannot get transaction info after delay.", attempt < attemptMax);
+                try {
+                    Thread.sleep(delay);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            } else {
+                return resp;
+            }
+        }
+
+        assertThat("Cannot get response.", resp, notNullValue());
+        return resp;
+    }
+
+    /**
      * Calls get_transaction function.
      *
      * @param userData user data
      * @param txid     transaction id
      * @return response: json when request was correct, empty otherwise
      */
-    public String getTransaction(UserData userData, String txid) {
+    private String getTransactionSingleCall(UserData userData, String txid) {
         log.debug("getTransaction {}", txid);
         String command = String.format("echo '{\"run\":\"get_transaction\", \"txid\":\"%s\"}' | ", txid)
                 .concat(clientApp).concat(clientAppOpts).concat(userData.getDataAsEscParams());
