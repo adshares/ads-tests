@@ -102,7 +102,6 @@ public class NodeStepDefs {
                 if (nodeId.equals(nodeEntry.get("id").getAsString())) {
                     msid = nodeEntry.get("msid").getAsInt();
                     log.debug("msid: {}", msid);
-                    log.debug("attempts: {}", attempt);
                     break;
                 }
             }
