@@ -6,6 +6,7 @@ import net.adshares.ads.qa.data.UserDataProvider;
 import net.adshares.ads.qa.util.AssertReason;
 import net.adshares.ads.qa.util.FunctionCaller;
 import net.adshares.ads.qa.util.LogChecker;
+import net.adshares.ads.qa.util.TransactionIdChecker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,8 +36,12 @@ public class CommonStepDefs {
             String reason = new AssertReason.Builder().req(fc.getLastRequest()).res(fc.getLastResponse())
                     .msg("Balance is different than sum of logged events in account " + userAddress).build();
             assertThat(reason, lc.isBalanceFromObjectEqualToArray());
-            log.trace("success");
         }
+    }
+
+    @Given("transaction ids")
+    public void transaction_ids() {
+        TransactionIdChecker.getInstance().checkAll();
     }
 
 }

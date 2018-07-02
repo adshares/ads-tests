@@ -60,3 +60,6 @@ Feature: Remote transfers
 
   Scenario: Check log
     Given user log
+
+  Scenario: Check transaction
+    Given transaction ids

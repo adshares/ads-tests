@@ -318,7 +318,7 @@ public class FunctionCaller {
      * Calls get_broadcast function, which gets broadcast messages from block.
      *
      * @param userData  user data
-     * @param blockTime block time in Unix Epoch seconds, 0 for last block
+     * @param blockTime block time in Unix Epoch seconds as hexadecimal String, 0 for last block
      * @return response: json when request was correct, empty otherwise
      */
     public String getBroadcast(UserData userData, String blockTime) {
@@ -337,6 +337,38 @@ public class FunctionCaller {
     public String getMe(UserData userData) {
         log.debug("getMe");
         String command = ("echo '{\"run\":\"get_me\"}' | ")
+                .concat(clientApp).concat(clientAppOpts).concat(userData.getDataAsEscParams());
+        return callFunction(command);
+    }
+
+    /**
+     * Calls get_message function.
+     *
+     * @param userData  user data
+     * @param blockTime block time in Unix Epoch seconds as hexadecimal String
+     * @param node      node id
+     * @param nodeMsid  message id assigned by node
+     * @return response: json when request was correct, empty otherwise
+     */
+    public String getMessage(UserData userData, String blockTime, int node, int nodeMsid) {
+        log.debug("getMessage");
+        String command = String.format(
+                "echo '{\"run\":\"get_message\", \"block\":\"%s\", \"node\":%d, \"node_msid\":%d}' | ",
+                blockTime, node, nodeMsid)
+                .concat(clientApp).concat(clientAppOpts).concat(userData.getDataAsEscParams());
+        return callFunction(command);
+    }
+
+    /**
+     * Calls get_message_list function.
+     *
+     * @param userData  user data
+     * @param blockTime block time in Unix Epoch seconds as hexadecimal String
+     * @return response: json when request was correct, empty otherwise
+     */
+    public String getMessageList(UserData userData, String blockTime) {
+        log.debug("getMessageList");
+        String command = String.format("echo '{\"run\":\"get_message_list\", \"block\":\"%s\"}' | ", blockTime)
                 .concat(clientApp).concat(clientAppOpts).concat(userData.getDataAsEscParams());
         return callFunction(command);
     }
@@ -425,7 +457,7 @@ public class FunctionCaller {
      * @param txid     transaction id
      * @return response: json when request was correct, empty otherwise
      */
-    String getTransaction(UserData userData, String txid) {
+    public String getTransaction(UserData userData, String txid) {
         String resp = null;
 
         // transaction info is not available for short time after transaction commit,
@@ -443,9 +475,9 @@ public class FunctionCaller {
                 String errorDesc = o.get("error").getAsString();
                 log.debug("Error occurred: {}", errorDesc);
 
-                assertThat("Unexpected error for get_transaction request.", errorDesc,
-                        equalTo(EscConst.Error.FAILED_TO_PROVIDE_TX_INFO));
-
+                boolean isExpectedError = EscConst.Error.FAILED_TO_PROVIDE_TX_INFO.equals(errorDesc)
+                        || EscConst.Error.FAILED_TO_LOAD_HASH.equals(errorDesc);
+                assertThat("Unexpected error for get_transaction request: " + errorDesc, isExpectedError);
                 assertThat("Cannot get transaction info after delay.", attempt < attemptMax);
                 try {
                     Thread.sleep(delay);

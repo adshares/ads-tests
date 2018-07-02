@@ -27,7 +27,11 @@ public class EscUtils {
             return false;
         }
         jsonObject = jsonObject.getAsJsonObject("tx");
-        return jsonObject.has("id");
+        boolean hasId = jsonObject.has("id");
+        if (hasId) {
+            TransactionIdChecker.getInstance().addTransactionId(jsonObject.get("id").getAsString());
+        }
+        return hasId;
     }
 
     /**

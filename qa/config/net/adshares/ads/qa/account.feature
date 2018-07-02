@@ -20,3 +20,6 @@ Feature: Account features
 
   Scenario: Check log
     Given user log
+
+  Scenario: Check transaction
+    Given transaction ids

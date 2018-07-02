@@ -114,6 +114,7 @@ public class EscConst {
         public static final String BROADCAST_NOT_READY = "Broadcast not ready, try again later";
         public static final String BROADCAST_NO_FILE_TO_SEND = "No broadcast file to send";
         public static final String CREATE_ACCOUNT_BAD_TIMING = "Bad timing for remote account request, try again later.";
+        public static final String FAILED_TO_LOAD_HASH = "Failed to load hash for block. Try perform get_blocks command to resolve.";
         public static final String FAILED_TO_PROVIDE_TX_INFO = "Failed to provide transaction info. Try again later.";
         public static final String GET_GLOBAL_USER_FAILED = "Failed to get global user info";
         public static final String GET_BLOCK_INFO_FAILED = "Block info is unavailable";
