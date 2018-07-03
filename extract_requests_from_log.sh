@@ -6,6 +6,9 @@ function show_help {
     echo "  -o output file (script to reproduce error)"
 }
 
+in_file_defined=0
+out_file_defined=0
+
 while getopts "h?i:o:" opt; do
     case "$opt" in
     h|\?)
@@ -13,13 +16,22 @@ while getopts "h?i:o:" opt; do
         exit 0
         ;;
     i)  in_file=$OPTARG
+        in_file_defined=1
         ;;
     o)  out_file=$OPTARG
+        out_file_defined=1
         ;;
     *)  show_help
         exit 0
     esac
 done
+
+# check, if options defined
+if [ $in_file_defined -ne 1 ] || [ $out_file_defined -ne 1 ]; then
+    echo "Needed options not defined."
+    show_help
+    exit 1
+fi
 
 # check, if input exist
 if [ ! -f $in_file ]; then
