@@ -120,6 +120,18 @@ public class EscUtils {
     }
 
     /**
+     * Returns hex String for previous block.
+     *
+     * @param blockTime hex String
+     * @return previous block time in hex
+     */
+    public static String getPreviousBlock(String blockTime) {
+        int time = Integer.parseInt(blockTime, 16);
+        time -= EscConst.BLOCK_PERIOD;
+        return Integer.toHexString(time);
+    }
+
+    /**
      * Gets node status from get_block function response.
      *
      * @param userData user data
