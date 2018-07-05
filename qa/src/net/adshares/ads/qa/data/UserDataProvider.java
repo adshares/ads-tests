@@ -9,7 +9,9 @@ import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class UserDataProvider {
 
@@ -68,6 +70,19 @@ public class UserDataProvider {
             }
             portInt++;
         }
+    }
+
+    /**
+     * Returns node count from genesis file.
+     *
+     * @return node count
+     */
+    public int getNodeCount() {
+        Set<Integer> nodeSet = new HashSet<>();
+        for (UserData user : users) {
+            nodeSet.add(user.getNode());
+        }
+        return nodeSet.size();
     }
 
     public List<UserData> getUserDataList() {

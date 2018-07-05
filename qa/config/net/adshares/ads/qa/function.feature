@@ -1,4 +1,11 @@
+@function
 Feature: Function
+
+  @get_accounts
+  Scenario: Check get_accounts
+    Given user, who will check get_accounts function
+    When user calls get_accounts function
+    Then response contains all accounts in node
 
   @log_account
   Scenario: Check log_account

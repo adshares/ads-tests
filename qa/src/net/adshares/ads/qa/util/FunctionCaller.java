@@ -207,11 +207,38 @@ public class FunctionCaller {
      * Calls get_account function.
      *
      * @param userData user data
+     * @param address  address of checked account
      * @return response: json when request was correct, empty otherwise
      */
     public String getAccount(UserData userData, String address) {
         log.debug("getAccount {}", address);
         String command = String.format("echo '{\"run\":\"get_account\", \"address\":\"%s\"}' | ", address)
+                .concat(clientApp).concat(clientAppOpts).concat(userData.getDataAsEscParams());
+        return callFunction(command);
+    }
+
+    /**
+     * Calls get_accounts function.
+     *
+     * @param userData  user data
+     * @param node      node id
+     * @return response: json when request was correct, empty otherwise
+     */
+    public String getAccounts(UserData userData, int node) {
+        return getAccounts(userData, node, "0");
+    }
+
+    /**
+     * Calls get_accounts function.
+     *
+     * @param userData  user data
+     * @param node      node id
+     * @param blockTime block time in Unix Epoch seconds as hexadecimal String, 0 for previous (last closed) block
+     * @return response: json when request was correct, empty otherwise
+     */
+    public String getAccounts(UserData userData, int node, String blockTime) {
+        log.debug("getAccounts node={}, block={}", node, blockTime);
+        String command = String.format("echo '{\"run\":\"get_accounts\", \"node\":%d, \"block\":\"%s\"}' | ", node, blockTime)
                 .concat(clientApp).concat(clientAppOpts).concat(userData.getDataAsEscParams());
         return callFunction(command);
     }
