@@ -11,4 +11,4 @@ echo
 cd $esc
 
 echo ------------------------------ change_account_key -------------------------------
-(echo '{"run":"get_me"}'; echo '{"run":"change_account_key","pkey":"'$_public_key_x'","signature":"'$_sign_x'"}') | ./esc -n$Valid  -P9001 -Hesc.dock -A$_address_x -s$_secret_x
+(echo '{"run":"get_me"}'; echo '{"run":"change_account_key","public_key":"'$_public_key_x'","confirm":"'$_sign_x'"}') | ./esc -n$Valid  -P9001 -Hesc.dock -A$_address_x -s$_secret_x

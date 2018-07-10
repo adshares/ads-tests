@@ -134,7 +134,7 @@ public class FunctionCaller {
      */
     public String changeAccountKey(UserData userData, String publicKey, String signature) {
         log.debug("changeAccountKey");
-        String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"change_account_key\", \"pkey\":\"%s\", \"signature\":\"%s\"}') | ", publicKey, signature)
+        String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"change_account_key\", \"public_key\":\"%s\", \"confirm\":\"%s\"}') | ", publicKey, signature)
                 .concat(clientApp).concat(clientAppOpts).concat(userData.getDataAsEscParams());
         String output = callFunction(command);
         output = output.replaceFirst(DOUBLE_RESP_REGEX, "{");
@@ -150,7 +150,7 @@ public class FunctionCaller {
      */
     public String changeNodeKey(UserData userData, String publicKey) {
         log.debug("changeNodeKey");
-        String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"change_node_key\", \"pkey\":\"%s\"}') | ", publicKey)
+        String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"change_node_key\", \"public_key\":\"%s\"}') | ", publicKey)
                 .concat(clientApp).concat(clientAppOpts).concat(userData.getDataAsEscParams());
         String output = callFunction(command);
         output = output.replaceFirst(DOUBLE_RESP_REGEX, "{");
