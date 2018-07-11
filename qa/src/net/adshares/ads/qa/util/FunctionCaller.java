@@ -325,15 +325,25 @@ public class FunctionCaller {
      *
      * @param userData user data
      */
-    private void updateBlocks(UserData userData) {
+    public void updateBlocks(UserData userData) {
         int attempt = 0;
-        int attemptMax = 3;
+        int attemptMax = 5;
 
         while (attempt++ < attemptMax) {
             String resp = getBlocks(userData);
             JsonObject o = Utils.convertStringToJsonObject(resp);
             if (o.has("error")) {
                 String errorDescription = o.get("error").getAsString();
+
+                if (EscConst.Error.COMMAND_PARSE_ERROR.equals(errorDescription)) {
+                    try {
+                        Thread.sleep(3000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    continue;
+                }
+
                 String reason = new AssertReason.Builder().msg("Unexpected error for get_blocks: " + errorDescription)
                         .req(FunctionCaller.getInstance().getLastRequest())
                         .res(FunctionCaller.getInstance().getLastResponse())
