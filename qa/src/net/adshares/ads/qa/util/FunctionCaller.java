@@ -220,8 +220,8 @@ public class FunctionCaller {
     /**
      * Calls get_accounts function.
      *
-     * @param userData  user data
-     * @param node      node id
+     * @param userData user data
+     * @param node     node id
      * @return response: json when request was correct, empty otherwise
      */
     public String getAccounts(UserData userData, int node) {
@@ -317,6 +317,32 @@ public class FunctionCaller {
         String command = ("echo '{\"run\":\"get_block\"}' | ")
                 .concat(clientApp).concat(clientAppOpts).concat(userData.getDataAsEscParams());
         return callFunction(command);
+    }
+
+    /**
+     * Wrapper for get_blocks function. Calls get_blocks until it updates all blocks.
+     * All blocks are updated when error "No new blocks to download" is returned.
+     *
+     * @param userData user data
+     */
+    private void updateBlocks(UserData userData) {
+        int attempt = 0;
+        int attemptMax = 3;
+
+        while (attempt++ < attemptMax) {
+            String resp = getBlocks(userData);
+            JsonObject o = Utils.convertStringToJsonObject(resp);
+            if (o.has("error")) {
+                String errorDescription = o.get("error").getAsString();
+                String reason = new AssertReason.Builder().msg("Unexpected error for get_blocks: " + errorDescription)
+                        .req(FunctionCaller.getInstance().getLastRequest())
+                        .res(FunctionCaller.getInstance().getLastResponse())
+                        .build();
+                assertThat(reason, errorDescription, equalTo(EscConst.Error.NO_NEW_BLOCKS));
+                return;
+            }
+        }
+        assertThat("Didn't update blocks in expected attempts.", attempt, lessThan(attemptMax));
     }
 
     /**
@@ -496,7 +522,7 @@ public class FunctionCaller {
         final int attemptMax = 3;
         log.trace("attemptMax = {}", attemptMax);
         while (attempt++ < attemptMax) {
-            getBlocks(userData);
+            updateBlocks(userData);
             resp = getTransactionSingleCall(userData, txid);
             JsonObject o = Utils.convertStringToJsonObject(resp);
             if (o.has("error")) {

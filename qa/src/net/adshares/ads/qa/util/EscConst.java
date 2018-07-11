@@ -121,6 +121,7 @@ public class EscConst {
         public static final String GET_BLOCK_INFO_FAILED = "Block info is unavailable";
         public static final String MATCH_SECRET_KEY_NOT_FOUND = "Matching secret key not found";
         public static final String NO_MESSAGE_LIST_FILE = "No message list file";
+        public static final String NO_NEW_BLOCKS = "No new blocks to download";
         public static final String CHANGE_NODE_STATUS_FAILED = "Not authorized to change node status";
         public static final String CHANGE_STATUS_FAILED = "Not authorized to change bits";
         public static final String CHANGE_STATUS_REMOTE_FAILED = "Changing account status on remote node not allowed";
