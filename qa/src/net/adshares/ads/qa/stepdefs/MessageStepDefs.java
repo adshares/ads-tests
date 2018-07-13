@@ -34,6 +34,7 @@ public class MessageStepDefs {
             "account_created",
             "broadcast",
             "change_account_key",
+            "change_node_key",
             "connection",
             "create_account",
             "create_node",
