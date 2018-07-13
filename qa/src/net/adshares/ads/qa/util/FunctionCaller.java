@@ -335,21 +335,25 @@ public class FunctionCaller {
             if (o.has("error")) {
                 String errorDescription = o.get("error").getAsString();
 
-                if (EscConst.Error.COMMAND_PARSE_ERROR.equals(errorDescription)) {
-                    try {
-                        Thread.sleep(3000);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                    continue;
-                }
+//                if (EscConst.Error.COMMAND_PARSE_ERROR.equals(errorDescription)) {
+//                    try {
+//                        Thread.sleep(3000);
+//                    } catch (InterruptedException e) {
+//                        e.printStackTrace();
+//                    }
+//                    continue;
+//                }
 
                 String reason = new AssertReason.Builder().msg("Unexpected error for get_blocks: " + errorDescription)
                         .req(FunctionCaller.getInstance().getLastRequest())
                         .res(FunctionCaller.getInstance().getLastResponse())
                         .build();
-                assertThat(reason, errorDescription, equalTo(EscConst.Error.NO_NEW_BLOCKS));
-                return;
+                Assert.fail(reason);
+            } else {
+                if (0 == o.get("updated_blocks").getAsInt()) {
+                    // If updated_blocks == 0, then all blocks are updated.
+                    return;
+                }
             }
         }
         assertThat("Didn't update blocks in expected attempts.", attempt, lessThan(attemptMax));
