@@ -83,7 +83,7 @@ public class MessageStepDefs {
                 JsonArray arr = o.getAsJsonArray("messages");
                 for (JsonElement el : arr) {
                     JsonObject entry = el.getAsJsonObject();
-                    int node = Integer.parseInt(entry.get("node").getAsString(), 16);
+                    int node = entry.get("node").getAsInt();
                     int nodeMsid = entry.get("node_msid").getAsInt();
                     String messageResp = fc.getMessage(userData, blockTime, node, nodeMsid);
                     JsonObject messageObj = Utils.convertStringToJsonObject(messageResp);
