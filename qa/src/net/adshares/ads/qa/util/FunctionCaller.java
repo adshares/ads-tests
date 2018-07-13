@@ -335,14 +335,14 @@ public class FunctionCaller {
             if (o.has("error")) {
                 String errorDescription = o.get("error").getAsString();
 
-//                if (EscConst.Error.COMMAND_PARSE_ERROR.equals(errorDescription)) {
-//                    try {
-//                        Thread.sleep(3000);
-//                    } catch (InterruptedException e) {
-//                        e.printStackTrace();
-//                    }
-//                    continue;
-//                }
+                if (EscConst.Error.GET_SIGNATURE_UNAVAILABLE.equals(errorDescription)) {
+                    try {
+                        Thread.sleep(3000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    continue;
+                }
 
                 String reason = new AssertReason.Builder().msg("Unexpected error for get_blocks: " + errorDescription)
                         .req(FunctionCaller.getInstance().getLastRequest())
@@ -365,7 +365,7 @@ public class FunctionCaller {
      * @param userData user data
      * @return response: json when request was correct, empty otherwise
      */
-    public String getBlocks(UserData userData) {
+    private String getBlocks(UserData userData) {
         log.debug("getBlocks");
         String command = ("echo '{\"run\":\"get_blocks\"}' | ")
                 .concat(clientApp).concat(clientAppOpts).concat(userData.getDataAsEscParams());
