@@ -413,19 +413,32 @@ public class FunctionCaller {
      * Calls get_message function.
      *
      * @param userData  user data
-     * @param blockTime block time in Unix Epoch seconds as hexadecimal String
-     * @param node      node id
-     * @param nodeMsid  message id assigned by node
+     * @param messageId message id
      * @return response: json when request was correct, empty otherwise
      */
-    public String getMessage(UserData userData, String blockTime, int node, int nodeMsid) {
+    public String getMessage(UserData userData, String messageId) {
         log.debug("getMessage");
-        String command = String.format(
-                "echo '{\"run\":\"get_message\", \"block\":\"%s\", \"node\":%d, \"node_msid\":%d}' | ",
-                blockTime, node, nodeMsid)
+        String command = String.format("echo '{\"run\":\"get_message\", \"message_id\":\"%s\"}' | ", messageId)
                 .concat(clientApp).concat(clientAppOpts).concat(userData.getDataAsEscParams());
         return callFunction(command);
     }
+
+//    /**
+//     * Calls get_message function.
+//     *
+//     * @param userData  user data
+//     * @param blockTime block time in Unix Epoch seconds as hexadecimal String
+//     * @param messageId message id
+//     * @return response: json when request was correct, empty otherwise
+//     */
+//    public String getMessage(UserData userData, String blockTime, String messageId) {
+//        log.debug("getMessage");
+//        String command = String.format(
+//                "echo '{\"run\":\"get_message\", \"block\":\"%s\", \"message_id\":%s}' | ",
+//                blockTime, messageId)
+//                .concat(clientApp).concat(clientAppOpts).concat(userData.getDataAsEscParams());
+//        return callFunction(command);
+//    }
 
     /**
      * Calls get_message_list function.

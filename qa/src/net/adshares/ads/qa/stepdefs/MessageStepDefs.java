@@ -82,10 +82,8 @@ public class MessageStepDefs {
             } else {
                 JsonArray arr = o.getAsJsonArray("messages");
                 for (JsonElement el : arr) {
-                    JsonObject entry = el.getAsJsonObject();
-                    int node = entry.get("node").getAsInt();
-                    int nodeMsid = entry.get("node_msid").getAsInt();
-                    String messageResp = fc.getMessage(userData, blockTime, node, nodeMsid);
+                    String messageId = el.getAsString();
+                    String messageResp = fc.getMessage(userData, messageId);
                     JsonObject messageObj = Utils.convertStringToJsonObject(messageResp);
                     if (messageObj.has("error")) {
                         String reason = new AssertReason.Builder()
