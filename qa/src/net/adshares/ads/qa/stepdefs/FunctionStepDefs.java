@@ -107,49 +107,53 @@ public class FunctionStepDefs {
 
     @Then("^response contains all accounts in node$")
     public void response_contains_all_accounts_in_node() {
-        int nodeAccCount = -1;
-        BigDecimal nodeBalance = BigDecimal.ZERO;
-        BigDecimal totalBalance = BigDecimal.ZERO;
-
         FunctionCaller fc = FunctionCaller.getInstance();
         String resp = fc.getBlock(userData);
-        JsonObject o = Utils.convertStringToJsonObject(resp);
 
-        JsonArray nodeArr = o.getAsJsonObject("block").getAsJsonArray("nodes");
+        JsonObject blockObj = Utils.convertStringToJsonObject(resp);
+        int accountCountGetBlock = getNodeAccountCountFromGetBlock(blockObj, node);
+
+        JsonObject responseObj = Utils.convertStringToJsonObject(response);
+        int accountCountGetAccounts = getNodeAccountCountFromGetAccounts(responseObj);
+
+        AssertReason.Builder arb = new AssertReason.Builder().msg("get_account response: " + response)
+                .req(fc.getLastRequest()).res(fc.getLastResponse());
+
+        // check number of accounts
+        assertThat(arb.msg("Different number of accounts.").build(), accountCountGetAccounts, equalTo(accountCountGetBlock));
+    }
+
+    /**
+     * Returns number of accounts in node.
+     *
+     * @param accountsObj get_accounts response as JSONObject
+     * @return number of accounts in in node or -1 if appropriate field was not present
+     */
+    private int getNodeAccountCountFromGetAccounts(JsonObject accountsObj) {
+        JsonArray accArr = accountsObj.getAsJsonArray("accounts");
+        return accArr.size();
+    }
+
+    /**
+     * Returns number of accounts in node.
+     *
+     * @param blockObj get_block response as JSONObject
+     * @param node     node id
+     * @return number of accounts in in node or -1 if appropriate field was not present
+     */
+    private int getNodeAccountCountFromGetBlock(JsonObject blockObj, int node) {
+        int accountCount = -1;
+
+        JsonArray nodeArr = blockObj.getAsJsonObject("block").getAsJsonArray("nodes");
         for (JsonElement je : nodeArr) {
             JsonObject nodeObj = je.getAsJsonObject();
             String tmpNodeId = nodeObj.get("id").getAsString();
             int tmpNode = Integer.valueOf(tmpNodeId, 16);
             if (node == tmpNode) {
-                nodeAccCount = nodeObj.get("account_count").getAsInt();
-                nodeBalance = nodeObj.get("balance").getAsBigDecimal();
+                accountCount = nodeObj.get("account_count").getAsInt();
                 break;
             }
         }
-        JsonObject responseObj = Utils.convertStringToJsonObject(response);
-        JsonArray accArr = responseObj.getAsJsonArray("accounts");
-
-        AssertReason.Builder arb = new AssertReason.Builder().msg("get_account response: " + response)
-                .req(fc.getLastRequest()).res(fc.getLastResponse());
-
-        if (accArr.size() != nodeAccCount) {
-            assertThat(arb.msg("Different number of accounts.").build(), accArr.size(), equalTo(nodeAccCount));
-        }
-
-        for (JsonElement je : accArr) {
-            totalBalance = totalBalance.add(je.getAsJsonObject().get("balance").getAsBigDecimal());
-        }
-
-        log.debug("totalBalance: {}", totalBalance.toPlainString());
-        log.debug("nodeBalance : {}", nodeBalance.toPlainString());
-        log.debug("diff        : {}", totalBalance.subtract(nodeBalance).toPlainString());
-        /*
-         * Currently difference between balances from both responses is compared with variable.
-         * Eventually difference should be computer from other function response.
-         * Matcher "lessThan" should be changed to "comparesEqualTo".
-         */
-        BigDecimal allowedDifference = new BigDecimal("0.00500000000");
-        assertThat(arb.msg("Balance difference is too big.").build(),
-                totalBalance.subtract(nodeBalance).abs(), lessThan(allowedDifference));
+        return accountCount;
     }
 }
