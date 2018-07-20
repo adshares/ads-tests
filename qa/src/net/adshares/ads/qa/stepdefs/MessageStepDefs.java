@@ -58,7 +58,6 @@ public class MessageStepDefs {
         log.debug("Selected user {}", userData.getAddress());
     }
 
-
     @When("^user checks all messages from last (\\d+) block\\(s\\)$")
     public void user_checks_messages(int blockNum) {
         FunctionCaller fc = FunctionCaller.getInstance();
@@ -80,25 +79,30 @@ public class MessageStepDefs {
                 assertThat("Unexpected error for get_message_list request.", errorDesc,
                         equalTo(EscConst.Error.NO_MESSAGE_LIST_FILE));
             } else {
-                JsonArray arr = o.getAsJsonArray("messages");
-                for (JsonElement el : arr) {
-                    String messageId = el.getAsString();
-                    String messageResp = fc.getMessage(userData, messageId);
-                    JsonObject messageObj = Utils.convertStringToJsonObject(messageResp);
-                    if (messageObj.has("error")) {
-                        String reason = new AssertReason.Builder()
-                                .msg("Unexpected error for get_message: " + messageObj.get("error").getAsString())
-                                .req(fc.getLastRequest()).res(fc.getLastResponse()).build();
-                        Assert.fail(reason);
-                    } else {
-                        JsonArray txArr = messageObj.getAsJsonArray("transactions");
-                        for (JsonElement txEl : txArr) {
-                            JsonObject txObj = txEl.getAsJsonObject();
-                            String type = txObj.get("type").getAsString();
+                JsonElement messages = o.get("messages");
+                // If message list is empty, field value is empty String.
+                // Need to check type of "messages" field
+                if (messages.isJsonArray()) {
+                    JsonArray arr = (JsonArray) messages;
+                    for (JsonElement el : arr) {
+                        String messageId = el.getAsString();
+                        String messageResp = fc.getMessage(userData, messageId);
+                        JsonObject messageObj = Utils.convertStringToJsonObject(messageResp);
+                        if (messageObj.has("error")) {
+                            String reason = new AssertReason.Builder()
+                                    .msg("Unexpected error for get_message: " + messageObj.get("error").getAsString())
+                                    .req(fc.getLastRequest()).res(fc.getLastResponse()).build();
+                            Assert.fail(reason);
+                        } else {
+                            JsonArray txArr = messageObj.getAsJsonArray("transactions");
+                            for (JsonElement txEl : txArr) {
+                                JsonObject txObj = txEl.getAsJsonObject();
+                                String type = txObj.get("type").getAsString();
 
-                            assertThat("Unknown type: " + type, ALLOWED_MSG_TYPE_SET, hasItemInArray(type));
-                            String txId = txObj.get("id").getAsString();
-                            TransactionIdChecker.getInstance().addTransactionId(txId);
+                                assertThat("Unknown type: " + type, ALLOWED_MSG_TYPE_SET, hasItemInArray(type));
+                                String txId = txObj.get("id").getAsString();
+                                TransactionIdChecker.getInstance().addTransactionId(txId);
+                            }
                         }
                     }
                 }
