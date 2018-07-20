@@ -80,9 +80,9 @@ public class MessageStepDefs {
                         equalTo(EscConst.Error.NO_MESSAGE_LIST_FILE));
             } else {
                 JsonElement messages = o.get("messages");
-                // If message list is empty, field value is empty String.
+                // If message list is empty, "message "field is missing in previous version it's value was empty String.
                 // Need to check type of "messages" field
-                if (messages.isJsonArray()) {
+                if (messages != null && messages.isJsonArray()) {
                     JsonArray arr = (JsonArray) messages;
                     for (JsonElement el : arr) {
                         String messageId = el.getAsString();
