@@ -111,9 +111,10 @@ public class EscConst {
      * Error messages
      */
     public class Error {
-//        public static final String BAD_LENGTH = "Bad length";
+        //        public static final String BAD_LENGTH = "Bad length";
         public static final String BROADCAST_NOT_READY = "Broadcast not ready, try again later";
-        public static final String BROADCAST_NO_FILE_TO_SEND = "No broadcast file to send";
+        // Error below is inactive because field 'broadcast_count' was introduced to show no broadcast message.
+        //        public static final String BROADCAST_NO_FILE_TO_SEND = "No broadcast file to send";
         public static final String CREATE_ACCOUNT_BAD_TIMING = "Bad timing for remote account request, try again later.";
         static final String FAILED_TO_LOAD_HASH = "Failed to load hash for block. Try perform get_blocks command to resolve.";
         static final String FAILED_TO_PROVIDE_TX_INFO = "Failed to provide transaction info. Try again later.";
@@ -121,7 +122,8 @@ public class EscConst {
         static final String GET_BLOCK_INFO_FAILED = "Block info is unavailable";
         public static final String MATCH_SECRET_KEY_NOT_FOUND = "Matching secret key not found";
         public static final String NO_MESSAGE_LIST_FILE = "No message list file";
-//        public static final String NO_NEW_BLOCKS = "No new blocks to download";
+        // Error below is inactive, because field 'updated_blocks' was introduced to show no new blocks.
+        //        public static final String NO_NEW_BLOCKS = "No new blocks to download";
         public static final String CHANGE_NODE_STATUS_FAILED = "Not authorized to change node status";
         public static final String CHANGE_STATUS_FAILED = "Not authorized to change bits";
         public static final String CHANGE_STATUS_REMOTE_FAILED = "Changing account status on remote node not allowed";

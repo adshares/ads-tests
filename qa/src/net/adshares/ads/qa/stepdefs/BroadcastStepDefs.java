@@ -1,6 +1,7 @@
 package net.adshares.ads.qa.stepdefs;
 
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import cucumber.api.java.en.Given;
 import cucumber.api.java.en.Then;
@@ -152,37 +153,41 @@ public class BroadcastStepDefs {
                             log.debug("wait another block");
                             waitForBlock();
                             delay++;
-                        } else if (EscConst.Error.BROADCAST_NO_FILE_TO_SEND.equals(err)) {
-                            Assert.assertTrue("Broadcast message wasn't found in expected blocks.",
-                                    nextBlockCheckAttempt < nextBlockCheckAttemptMax);
-                            log.debug("check next block (v1)");
-                            blockTime = EscUtils.getNextBlock(blockTime);
-                            nextBlockCheckAttempt++;
                         } else {
                             Assert.fail("Unexpected error message: " + err);
                         }
                     } else {
-                        JsonArray broadcastArr = o.getAsJsonArray("broadcast");
-                        int size = broadcastArr.size();
-                        log.debug("size {}", size);
-                        for (int i = 0; i < size; i++) {
-                            String receivedMessage = broadcastArr.get(i).getAsJsonObject().get("message").getAsString();
+                        int broadcastCount = o.get("broadcast_count").getAsInt();
+                        log.debug("get_broadcast count: {}", broadcastCount);
+                        if (broadcastCount > 0) {
+                            JsonElement el = o.get("broadcast");
+                            if (el != null && el.isJsonArray()) {
+                                JsonArray broadcastArr = (JsonArray) el;
+                                int size = broadcastArr.size();
+                                log.debug("size {}", size);
+                                for (int i = 0; i < size; i++) {
+                                    String receivedMessage = broadcastArr.get(i).getAsJsonObject().get("message").getAsString();
 
-                            Iterator<BroadcastMessageData> it = userBmdList.iterator();
-                            while (it.hasNext()) {
-                                String otherMessage = it.next().getMessage();
-                                if (otherMessage.equals(receivedMessage)) {
-                                    log.debug("got message: {}", receivedMessage);
-                                    it.remove();
+                                    Iterator<BroadcastMessageData> it = userBmdList.iterator();
+                                    while (it.hasNext()) {
+                                        String otherMessage = it.next().getMessage();
+                                        if (otherMessage.equals(receivedMessage)) {
+                                            log.debug("got message: {}", receivedMessage);
+                                            it.remove();
 
-                                    if (message.equals(receivedMessage)) {
-                                        log.debug("received message");
-                                        isMessageReceived = true;
+                                            if (message.equals(receivedMessage)) {
+                                                log.debug("received message");
+                                                isMessageReceived = true;
+                                            }
+                                            break;
+                                        }
                                     }
-                                    break;
                                 }
+                            } else {
+                                String reason = new AssertReason.Builder().msg("Invalid 'broadcast' field.")
+                                        .req(fc.getLastRequest()).res(resp).build();
+                                Assert.fail(reason);
                             }
-
                         }
 
                         if (!isMessageReceived) {
@@ -190,10 +195,11 @@ public class BroadcastStepDefs {
                             // therefore next block must be checked
                             Assert.assertTrue("Broadcast message wasn't found in further blocks.",
                                     nextBlockCheckAttempt < nextBlockCheckAttemptMax);
-                            log.debug("check next block (v2)");
+                            log.debug("check next block");
                             blockTime = EscUtils.getNextBlock(blockTime);
                             nextBlockCheckAttempt++;
                         }
+
                     }
                 } while (!isMessageReceived);
 
