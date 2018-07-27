@@ -124,9 +124,10 @@ public class AccountStepDefs {
         assertThat(reason, feeFromLog, comparesEqualTo(EscConst.CHANGE_ACCOUNT_KEY_FEE));
     }
 
-    @When("^user creates( remote)? account$")
-    public void user_creates_account(String accountType) {
+    @When("^user creates( remote)? account( with custom key)?$")
+    public void user_creates_account(String accountType, String customKey) {
         boolean isRemote = " remote".equals(accountType);
+        boolean isCustomKey = " with custom key".equals(customKey);
         FunctionCaller fc = FunctionCaller.getInstance();
 
         String resp;
@@ -135,10 +136,18 @@ public class AccountStepDefs {
             String nodeId = getDifferentNodeId(userData, userNodeId);
             assertThat("Not able to find different node id.", nodeId, notNullValue());
             // Function create_account takes node parameter in decimal format
-            int node = Integer.valueOf(nodeId, 16);
-            resp = requestRemoteAccountCreation(userData, node);
+            int node = (nodeId != null) ? Integer.valueOf(nodeId, 16) : 1;
+            if (isCustomKey) {
+                resp = requestRemoteAccountCreation(userData, node, PUBLIC_KEY, SIGNATURE);
+            } else {
+                resp = requestRemoteAccountCreation(userData, node, null, null);
+            }
         } else {
-            resp = fc.createAccount(userData);
+            if (isCustomKey) {
+                resp = fc.createAccount(userData, PUBLIC_KEY, SIGNATURE);
+            } else {
+                resp = fc.createAccount(userData);
+            }
         }
 
         JsonObject o = Utils.convertStringToJsonObject(resp);
@@ -178,11 +187,13 @@ public class AccountStepDefs {
         }
         assertThat("Created address is not valid: " + address, EscUtils.isValidAccountAddress(address));
         createdUserData = UserDataProvider.getInstance().cloneUser(userData, address);
+        if (isCustomKey) {
+            createdUserData.setSecret(PRIVATE_KEY);
+        }
     }
 
     @Then("^account is created$")
     public void account_is_created() {
-
         // Sometimes account is created with delay,
         // therefore there are next attempts.
         int attempt = 0;
@@ -210,17 +221,20 @@ public class AccountStepDefs {
     /**
      * Requests account creation few times with delay.
      *
-     * @param userData user data
-     * @param node     node in which account should be created (decimal)
+     * @param userData  user data
+     * @param node      node in which account should be created (decimal)
+     * @param publicKey new public key. Null is allowed. If key is null, key will be the same as creator key.
+     * @param signature empty String signed with new private key. Null is allowed. If signature is null, key
+     *                  will not be changed
      * @return response: json when request was correct, empty otherwise
      */
-    private String requestRemoteAccountCreation(UserData userData, int node) {
+    private String requestRemoteAccountCreation(UserData userData, int node, String publicKey, String signature) {
         String resp = "";
         int attempt = 0;
         int attemptMax = 6;
         while (attempt++ < attemptMax) {
 
-            resp = FunctionCaller.getInstance().createAccount(userData, node);
+            resp = FunctionCaller.getInstance().createAccount(userData, node, publicKey, signature);
             JsonObject o = Utils.convertStringToJsonObject(resp);
 
             if (o.has("error")) {

@@ -158,32 +158,57 @@ public class FunctionCaller {
     }
 
     /**
-     * Calls create_account function.
+     * Calls create_account function. Created account will have the same key as creator.
      *
      * @param userData user data
      * @return response: json when request was correct, empty otherwise
      */
     public String createAccount(UserData userData) {
-        log.debug("createAccount in current node");
-        String command = "(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"create_account\"}') | "
-                .concat(clientApp).concat(clientAppOpts).concat(userData.getDataAsEscParams());
-        String output = callFunction(command);
-        output = output.replaceFirst(DOUBLE_RESP_REGEX, "{");
-        return output;
+        return createAccount(userData, -1, null, null);
     }
 
     /**
-     * Calls create_account function.
+     * Calls create_account function with optional change key.
      *
-     * @param userData user data
-     * @param node     node in which account should be created (decimal)
+     * @param userData  user data
+     * @param publicKey new public key. Null is allowed. If key is null, key will be the same as creator key.
+     * @param signature empty String signed with new private key
      * @return response: json when request was correct, empty otherwise
      */
-    public String createAccount(UserData userData, int node) {
-        log.debug("createAccount in {} node", node);
-        String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"create_account\", \"node\":\"%d\"}') | ", node)
-                .concat(clientApp).concat(clientAppOpts).concat(userData.getDataAsEscParams());
-        String output = callFunction(command);
+    public String createAccount(UserData userData, String publicKey, String signature) {
+        return createAccount(userData, -1, publicKey, signature);
+    }
+
+    /**
+     * Calls create_account function with optional change key.
+     *
+     * @param userData  user data
+     * @param node      node in which account should be created (decimal). If node is lesser than 1, local account
+     *                  will be created
+     * @param publicKey new public key. Null is allowed. If key is null, key will be the same as creator key.
+     * @param signature empty String signed with new private key. Null is allowed. If signature is null, key
+     *                  will not be changed
+     * @return response: json when request was correct, empty otherwise
+     */
+    public String createAccount(UserData userData, int node, String publicKey, String signature) {
+        log.debug("createAccount");
+        StringBuilder sb = new StringBuilder("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"create_account\"");
+
+        // append node
+        if (node >= 1) {
+            sb.append(String.format(", \"node\":\"%d\"", node));
+        }
+
+        // append key and signature
+        if (publicKey != null && signature != null) {
+            sb.append(String.format(", \"public_key\":\"%s\", \"confirm\":\"%s\"", publicKey, signature));
+        }
+
+        sb.append("}') | ");
+        sb.append(clientApp);
+        sb.append(clientAppOpts);
+        sb.append(userData.getDataAsEscParams());
+        String output = callFunction(sb.toString());
         output = output.replaceFirst(DOUBLE_RESP_REGEX, "{");
         return output;
     }
@@ -325,7 +350,7 @@ public class FunctionCaller {
      *
      * @param userData user data
      */
-    public void updateBlocks(UserData userData) {
+    private void updateBlocks(UserData userData) {
         int attempt = 0;
         int attemptMax = 5;
 
