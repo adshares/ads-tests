@@ -72,6 +72,10 @@ public class FunctionCaller {
      * Last response from esc
      */
     private String lastResponse;
+    /**
+     * Dry-run, if true, transaction won't be send to network
+     */
+    private boolean isDryRun;
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
@@ -673,6 +677,23 @@ public class FunctionCaller {
     }
 
     /**
+     * Calls send_one function with timestamp.
+     *
+     * @param sender          sender data
+     * @param receiverAddress receiver address
+     * @param amount          transfer amount
+     * @param timestamp       user timestamp of transaction
+     * @return response: json when request was correct, empty otherwise
+     */
+    public String sendOne(UserData sender, String receiverAddress, String amount, int timestamp) {
+        log.debug("sendOne {}->{}: {}", sender.getAddress(), receiverAddress, amount);
+        String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"send_one\", \"address\":\"%s\", \"amount\":\"%s\", \"time\":\"%d\"}') | ", receiverAddress, amount, timestamp)
+                .concat(clientApp).concat(clientAppOpts).concat(sender.getDataAsEscParams());
+        String output = callFunction(command);
+        return output.replaceFirst(DOUBLE_RESP_REGEX, "{");
+    }
+
+    /**
      * Calls send_one function.
      *
      * @param sender          sender data
@@ -1120,5 +1141,23 @@ public class FunctionCaller {
      */
     public String getLastResponse() {
         return lastResponse;
+    }
+
+    //    public boolean isDryRun() {
+//        return isDryRun;
+//    }
+//
+    public void setDryRun(boolean dryRun) {
+        if (isDryRun != dryRun) {
+            String dryRunOpt = " --dry-run=1";
+
+            if (isDryRun) {
+                clientAppOpts = clientAppOpts.substring(0, clientAppOpts.length() - dryRunOpt.length());
+            } else {
+                clientAppOpts = clientAppOpts.concat(dryRunOpt);
+            }
+
+            isDryRun = dryRun;
+        }
     }
 }
