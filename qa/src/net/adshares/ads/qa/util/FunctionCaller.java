@@ -1099,7 +1099,7 @@ public class FunctionCaller {
             long startTime = System.currentTimeMillis();
             do {
                 resp = callFunction(
-                        sysCmdPrefix + String.format("/ads_repo/scripts/ads_ctl.py --data-dir=%s wait", dataDir));
+                        sysCmdPrefix + String.format("/ads_repo/ads-dev-tools/scripts/ads_ctl --data-dir=%s wait", dataDir));
                 assertThat("Timeout during docker start.",
                         !(resp.contains("timeout") || resp.contains("failed")
                                 || (System.currentTimeMillis() - startTime > COMPILATION_TIMEOUT)));
