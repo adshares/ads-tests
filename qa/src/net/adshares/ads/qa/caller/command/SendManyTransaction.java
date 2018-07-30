@@ -36,20 +36,15 @@ public class SendManyTransaction extends AbstractTransaction {
     }
 
     @Override
-    public String toStringCommand() {
-        StringBuilder sb = new StringBuilder();
-        sb.append('(');
-        sb.append("echo '{\"run\":\"get_me\"}';");
+    public String getName() {
+        return "send_many";
+    }
 
-        sb.append(String.format("echo '{\"run\":\"send_many\", \"wires\":%s", getWiresString()));
-
-        if (time > INVALID_TIME) {
-            sb.append(String.format(", \"time\":\"%d\"", time));
-        }
-        sb.append("}'");
-
-        sb.append(')');
-        return sb.toString();
+    @Override
+    public List<String> getParameters() {
+        List<String> list = super.getParameters();
+        list.add(String.format("\"wires\":%s", getWiresString()));
+        return list;
     }
 
     private String getWiresString() {

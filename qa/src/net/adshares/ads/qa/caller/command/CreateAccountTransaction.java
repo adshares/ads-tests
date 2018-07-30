@@ -2,6 +2,8 @@ package net.adshares.ads.qa.caller.command;
 
 import net.adshares.ads.qa.data.UserData;
 
+import java.util.List;
+
 public class CreateAccountTransaction extends AbstractTransaction {
 
     private String publicKey;
@@ -13,6 +15,25 @@ public class CreateAccountTransaction extends AbstractTransaction {
      */
     public CreateAccountTransaction(UserData senderData) {
         this.senderData = senderData;
+    }
+
+    @Override
+    public String getName() {
+        return "create_account";
+    }
+
+    @Override
+    public List<String> getParameters() {
+        List<String> list = super.getParameters();
+        // append node
+        if (node >= 1) {
+            list.add(String.format("\"node\":%d", node));
+        }
+        // append key and signature
+        if (publicKey != null && signature != null) {
+            list.add(String.format("\"public_key\":\"%s\", \"confirm\":\"%s\"", publicKey, signature));
+        }
+        return list;
     }
 
     /**
@@ -30,33 +51,6 @@ public class CreateAccountTransaction extends AbstractTransaction {
      */
     public void setNode(int node) {
         this.node = node;
-    }
-
-    @Override
-    public String toStringCommand() {
-        StringBuilder sb = new StringBuilder();
-        sb.append('(');
-        sb.append("echo '{\"run\":\"get_me\"}';");
-
-        sb.append("echo '{\"run\":\"create_account\"");
-
-        // append node
-        if (node >= 1) {
-            sb.append(String.format(", \"node\":\"%d\"", node));
-        }
-
-        // append key and signature
-        if (publicKey != null && signature != null) {
-            sb.append(String.format(", \"public_key\":\"%s\", \"confirm\":\"%s\"", publicKey, signature));
-        }
-
-        if (time > INVALID_TIME) {
-            sb.append(String.format(", \"time\":\"%d\"", time));
-        }
-        sb.append("}'");
-
-        sb.append(')');
-        return sb.toString();
     }
 
     @Override

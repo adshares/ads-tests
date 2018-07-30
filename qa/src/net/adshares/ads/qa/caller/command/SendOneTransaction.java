@@ -2,6 +2,8 @@ package net.adshares.ads.qa.caller.command;
 
 import net.adshares.ads.qa.data.UserData;
 
+import java.util.List;
+
 public class SendOneTransaction extends AbstractTransaction {
 
     private String receiverAddress;
@@ -19,30 +21,27 @@ public class SendOneTransaction extends AbstractTransaction {
         this.amount = amount;
     }
 
+    @Override
+    public String getName() {
+        return "send_one";
+    }
+
+    @Override
+    public List<String> getParameters() {
+        List<String> list = super.getParameters();
+        list.add(String.format("\"address\":\"%s\"", receiverAddress));
+        list.add(String.format("\"amount\":\"%s\"", amount));
+        if (message != null) {
+            list.add(String.format("\"message\":\"%s\"", message));
+        }
+        return list;
+    }
+
     /**
      * @param message message
      */
     public void setMessage(String message) {
         this.message = message;
-    }
-
-    @Override
-    public String toStringCommand() {
-        StringBuilder sb = new StringBuilder();
-        sb.append('(');
-        sb.append("echo '{\"run\":\"get_me\"}';");
-
-        sb.append(String.format("echo '{\"run\":\"send_one\", \"address\":\"%s\", \"amount\":\"%s\"", receiverAddress, amount));
-        if (null != message) {
-            sb.append(String.format(", \"message\":\"%s\"", message));
-        }
-        if (time > INVALID_TIME) {
-            sb.append(String.format(", \"time\":\"%d\"", time));
-        }
-        sb.append("}'");
-
-        sb.append(')');
-        return sb.toString();
     }
 
     @Override
