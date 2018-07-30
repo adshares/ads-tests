@@ -111,6 +111,7 @@ public class EscConst {
      * Error messages
      */
     public class Error {
+        public static final String AMOUNT_MUST_BE_POSITIVE = "Amount must be positive";
         //        public static final String BAD_LENGTH = "Bad length";
         public static final String BROADCAST_NOT_READY = "Broadcast not ready, try again later";
         // Error below is inactive because field 'broadcast_count' was introduced to show no broadcast message.

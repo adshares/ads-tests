@@ -440,6 +440,25 @@ public class TransferStepDefs {
         log.debug("read message {}", receivedMessage);
     }
 
+    @When("^sender sends many transfers with 0 ADS amount$")
+    public void sender_sends_many_transfers_with_invalid_amount() {
+        String amount = "0";
+        Map<String, String> map = new HashMap<>(txReceivers.size());
+        for (TransferUser txReceiver : txReceivers) {
+            map.put(txReceiver.getUserData().getAddress(), amount);
+        }
+
+        String resp = FunctionCaller.getInstance().sendMany(new SendManyTransaction(txSender.getUserData(), map));
+        JsonObject o = Utils.convertStringToJsonObject(resp);
+
+        String errorDesc = o.has("error") ? o.get("error").getAsString() : "null";
+        String reason = new AssertReason.Builder().req(FunctionCaller.getInstance().getLastRequest()).res(resp)
+                .msg("Unexpected error for send multiple transfers with amount: " + amount).build();
+        assertThat(reason, errorDesc, equalTo(EscConst.Error.AMOUNT_MUST_BE_POSITIVE));
+
+        isTransactionAccepted = EscUtils.isTransactionAcceptedByNode(o);
+    }
+
     @When("^sender sends many transfers to single receiver$")
     public void sender_sends_many_transfers_to_single_receiver() {
         String[] data = new String[]{"00FF-00000000-XXXX", "0.00000000001"};

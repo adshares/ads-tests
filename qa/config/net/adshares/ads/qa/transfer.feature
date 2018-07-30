@@ -36,6 +36,11 @@ Feature: Local transfers
     Then receiver balance is as expected (changed by amount)
     And sender balance is as expected (changed by amount and fee)
 
+  Scenario: Send many 0 ADS (invalid)
+    Given 3 users in same node
+    When sender sends many transfers with 0 ADS amount
+    Then transfer is rejected
+
   Scenario: Send many to single (invalid)
     Given user, who wants to send transfer
     When sender sends many transfers to single receiver
