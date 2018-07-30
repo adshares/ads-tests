@@ -66,7 +66,14 @@ Feature: Local transfers
     Then receiver balance is as expected
     And sender balance is as expected
 
-  Scenario: Send all collected funds (fee included)
+  Scenario: Send all collected funds A->B (fee included)
+    Given 2 users in same node
+    When sender sends all to receiver (fee is included)
+    And wait for balance update
+    Then receiver balance is as expected (changed by amount)
+    And sender balance is as expected (changed by amount and fee)
+
+  Scenario: Send all collected funds B->A (fee included)
     Given 2 users in same node
     When sender sends all to receiver (fee is included)
     And wait for balance update
