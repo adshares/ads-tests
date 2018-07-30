@@ -131,6 +131,7 @@ public class EscConst {
         public static final String COMMAND_PARSE_ERROR = "Parse error, check input data";
         public static final String DUPLICATED_TARGET = "Duplicated target";
         public static final String GET_SIGNATURE_UNAVAILABLE = "Signature is unavailable";
+        public static final String TOO_LOW_BALANCE = "Too low balance";
     }
 
     /**

@@ -440,9 +440,8 @@ public class TransferStepDefs {
         log.debug("read message {}", receivedMessage);
     }
 
-    @When("^sender sends many transfers with 0 ADS amount$")
-    public void sender_sends_many_transfers_with_invalid_amount() {
-        String amount = "0";
+    @When("^sender sends many transfers with (\\d+) ADS amount$")
+    public void sender_sends_many_transfers_with_invalid_amount(String amount) {
         Map<String, String> map = new HashMap<>(txReceivers.size());
         for (TransferUser txReceiver : txReceivers) {
             map.put(txReceiver.getUserData().getAddress(), amount);
@@ -454,7 +453,11 @@ public class TransferStepDefs {
         String errorDesc = o.has("error") ? o.get("error").getAsString() : "null";
         String reason = new AssertReason.Builder().req(FunctionCaller.getInstance().getLastRequest()).res(resp)
                 .msg("Unexpected error for send multiple transfers with amount: " + amount).build();
-        assertThat(reason, errorDesc, equalTo(EscConst.Error.AMOUNT_MUST_BE_POSITIVE));
+
+        int amountAsInt = Integer.parseInt(amount);
+        String expectedErrorDesc = (amountAsInt > 0) ? EscConst.Error.TOO_LOW_BALANCE
+                : EscConst.Error.AMOUNT_MUST_BE_POSITIVE;
+        assertThat(reason, errorDesc, equalTo(expectedErrorDesc));
 
         isTransactionAccepted = EscUtils.isTransactionAcceptedByNode(o);
     }
