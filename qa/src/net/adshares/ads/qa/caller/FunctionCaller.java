@@ -1,8 +1,12 @@
-package net.adshares.ads.qa.util;
+package net.adshares.ads.qa.caller;
 
 import com.google.gson.*;
+import net.adshares.ads.qa.caller.command.CreateAccountTransaction;
+import net.adshares.ads.qa.caller.command.SendManyTransaction;
+import net.adshares.ads.qa.caller.command.SendOneTransaction;
 import net.adshares.ads.qa.data.UserData;
 import net.adshares.ads.qa.stepdefs.TransferUser;
+import net.adshares.ads.qa.util.*;
 import org.apache.commons.exec.CommandLine;
 import org.apache.commons.exec.DefaultExecutor;
 import org.apache.commons.exec.ExecuteWatchdog;
@@ -16,7 +20,6 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -162,57 +165,17 @@ public class FunctionCaller {
     }
 
     /**
-     * Calls create_account function. Created account will have the same key as creator.
+     * Calls create_account function.
      *
-     * @param userData user data
+     * @param createAccountTransaction create account transaction data
      * @return response: json when request was correct, empty otherwise
      */
-    public String createAccount(UserData userData) {
-        return createAccount(userData, -1, null, null);
-    }
+    public String createAccount(CreateAccountTransaction createAccountTransaction) {
+        log.debug(createAccountTransaction.toStringLogger());
 
-    /**
-     * Calls create_account function with optional change key.
-     *
-     * @param userData  user data
-     * @param publicKey new public key. Null is allowed. If key is null, key will be the same as creator key.
-     * @param signature empty String signed with new private key
-     * @return response: json when request was correct, empty otherwise
-     */
-    public String createAccount(UserData userData, String publicKey, String signature) {
-        return createAccount(userData, -1, publicKey, signature);
-    }
-
-    /**
-     * Calls create_account function with optional change key.
-     *
-     * @param userData  user data
-     * @param node      node in which account should be created (decimal). If node is lesser than 1, local account
-     *                  will be created
-     * @param publicKey new public key. Null is allowed. If key is null, key will be the same as creator key.
-     * @param signature empty String signed with new private key. Null is allowed. If signature is null, key
-     *                  will not be changed
-     * @return response: json when request was correct, empty otherwise
-     */
-    public String createAccount(UserData userData, int node, String publicKey, String signature) {
-        log.debug("createAccount");
-        StringBuilder sb = new StringBuilder("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"create_account\"");
-
-        // append node
-        if (node >= 1) {
-            sb.append(String.format(", \"node\":\"%d\"", node));
-        }
-
-        // append key and signature
-        if (publicKey != null && signature != null) {
-            sb.append(String.format(", \"public_key\":\"%s\", \"confirm\":\"%s\"", publicKey, signature));
-        }
-
-        sb.append("}') | ");
-        sb.append(clientApp);
-        sb.append(clientAppOpts);
-        sb.append(userData.getDataAsEscParams());
-        String output = callFunction(sb.toString());
+        String command = createAccountTransaction.toStringCommand().concat(" | ").concat(clientApp).concat(clientAppOpts)
+                .concat(createAccountTransaction.getSenderData().getDataAsEscParams());
+        String output = callFunction(command);
         output = output.replaceFirst(DOUBLE_RESP_REGEX, "{");
         return output;
     }
@@ -663,49 +626,13 @@ public class FunctionCaller {
     /**
      * Calls send_one function.
      *
-     * @param sender          sender data
-     * @param receiverAddress receiver address
-     * @param amount          transfer amount
+     * @param sendOneTransaction send one transaction data
      * @return response: json when request was correct, empty otherwise
      */
-    public String sendOne(UserData sender, String receiverAddress, String amount) {
-        log.debug("sendOne {}->{}: {}", sender.getAddress(), receiverAddress, amount);
-        String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"send_one\", \"address\":\"%s\", \"amount\":\"%s\"}') | ", receiverAddress, amount)
-                .concat(clientApp).concat(clientAppOpts).concat(sender.getDataAsEscParams());
-        String output = callFunction(command);
-        return output.replaceFirst(DOUBLE_RESP_REGEX, "{");
-    }
-
-    /**
-     * Calls send_one function with timestamp.
-     *
-     * @param sender          sender data
-     * @param receiverAddress receiver address
-     * @param amount          transfer amount
-     * @param timestamp       user timestamp of transaction
-     * @return response: json when request was correct, empty otherwise
-     */
-    public String sendOne(UserData sender, String receiverAddress, String amount, int timestamp) {
-        log.debug("sendOne {}->{}: {}", sender.getAddress(), receiverAddress, amount);
-        String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"send_one\", \"address\":\"%s\", \"amount\":\"%s\", \"time\":\"%d\"}') | ", receiverAddress, amount, timestamp)
-                .concat(clientApp).concat(clientAppOpts).concat(sender.getDataAsEscParams());
-        String output = callFunction(command);
-        return output.replaceFirst(DOUBLE_RESP_REGEX, "{");
-    }
-
-    /**
-     * Calls send_one function.
-     *
-     * @param sender          sender data
-     * @param receiverAddress receiver address
-     * @param amount          transfer amount
-     * @param message         message
-     * @return response: json when request was correct, empty otherwise
-     */
-    public String sendOne(UserData sender, String receiverAddress, String amount, String message) {
-        log.debug("sendOne {}->{}: {}, msg: {}", sender.getAddress(), receiverAddress, amount, message);
-        String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"send_one\", \"address\":\"%s\", \"amount\":\"%s\", \"message\":\"%s\"}') | ", receiverAddress, amount, message)
-                .concat(clientApp).concat(clientAppOpts).concat(sender.getDataAsEscParams());
+    public String sendOne(SendOneTransaction sendOneTransaction) {
+        log.debug(sendOneTransaction.toStringLogger());
+        String command = sendOneTransaction.toStringCommand().concat(" | ").concat(clientApp).concat(clientAppOpts)
+                .concat(sendOneTransaction.getSenderData().getDataAsEscParams());
         String output = callFunction(command);
         return output.replaceFirst(DOUBLE_RESP_REGEX, "{");
     }
@@ -713,47 +640,13 @@ public class FunctionCaller {
     /**
      * Calls send_many function.
      *
-     * @param sender      sender data
-     * @param receiverMap map of receiver - amount pairs
+     * @param sendManyTransaction send many transaction data
      * @return response: json when request was correct, empty otherwise
      */
-    public String sendMany(UserData sender, Map<String, String> receiverMap) {
-        log.debug("sendMany {}->", sender.getAddress());
-        for (Map.Entry<String, String> entry : receiverMap.entrySet()) {
-            log.debug("sendMany ->{}: {}", entry.getKey(), entry.getValue());
-        }
-        Gson gson = new GsonBuilder().create();
-        String wires = gson.toJson(receiverMap);
-        String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"send_many\", \"wires\":%s}') | ", wires)
-                .concat(clientApp).concat(clientAppOpts).concat(sender.getDataAsEscParams());
-        String output = callFunction(command);
-        output = output.replaceFirst(DOUBLE_RESP_REGEX, "{");
-        return output;
-    }
-
-    /**
-     * Calls send_many function.
-     *
-     * @param sender       sender data
-     * @param receiverList list of receiver - amount pairs
-     * @return response: json when request was correct, empty otherwise
-     */
-    public String sendMany(UserData sender, List<String[]> receiverList) {
-        log.debug("sendMany {}->", sender.getAddress());
-        StringBuilder sb = new StringBuilder("{");
-        for (String[] entry : receiverList) {
-            log.debug("sendMany ->{}: {}", entry[0], entry[1]);
-            sb.append("\"");
-            sb.append(entry[0]);
-            sb.append("\":\"");
-            sb.append(entry[1]);
-            sb.append("\",");
-        }
-        sb.setLength(sb.length() - 1);
-        sb.append("}");
-        String wires = sb.toString();
-        String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"send_many\", \"wires\":%s}') | ", wires)
-                .concat(clientApp).concat(clientAppOpts).concat(sender.getDataAsEscParams());
+    public String sendMany(SendManyTransaction sendManyTransaction) {
+        log.debug(sendManyTransaction.toStringLogger());
+        String command = sendManyTransaction.toStringCommand().concat(" | ").concat(clientApp).concat(clientAppOpts)
+                .concat(sendManyTransaction.getSenderData().getDataAsEscParams());
         String output = callFunction(command);
         output = output.replaceFirst(DOUBLE_RESP_REGEX, "{");
         return output;

@@ -1,7 +1,7 @@
 package net.adshares.ads.qa.stepdefs;
 
 import cucumber.api.java.Before;
-import net.adshares.ads.qa.util.FunctionCaller;
+import net.adshares.ads.qa.caller.FunctionCaller;
 
 /**
  * Cucumber hooks.

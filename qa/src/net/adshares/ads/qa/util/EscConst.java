@@ -105,7 +105,7 @@ public class EscConst {
     /**
      * VIP_MAX maximum number of vip nodes
      */
-    static final int VIP_MAX = 7;
+    public static final int VIP_MAX = 7;
 
     /**
      * Error messages
@@ -116,10 +116,10 @@ public class EscConst {
         // Error below is inactive because field 'broadcast_count' was introduced to show no broadcast message.
         //        public static final String BROADCAST_NO_FILE_TO_SEND = "No broadcast file to send";
         public static final String CREATE_ACCOUNT_BAD_TIMING = "Bad timing for remote account request, try again later.";
-        static final String FAILED_TO_LOAD_HASH = "Failed to load hash for block. Try perform get_blocks command to resolve.";
-        static final String FAILED_TO_PROVIDE_TX_INFO = "Failed to provide transaction info. Try again later.";
+        public static final String FAILED_TO_LOAD_HASH = "Failed to load hash for block. Try perform get_blocks command to resolve.";
+        public static final String FAILED_TO_PROVIDE_TX_INFO = "Failed to provide transaction info. Try again later.";
         public static final String GET_GLOBAL_USER_FAILED = "Failed to get global user info";
-        static final String GET_BLOCK_INFO_FAILED = "Block info is unavailable";
+        public static final String GET_BLOCK_INFO_FAILED = "Block info is unavailable";
         public static final String MATCH_SECRET_KEY_NOT_FOUND = "Matching secret key not found";
         public static final String NO_MESSAGE_LIST_FILE = "No message list file";
         // Error below is inactive, because field 'updated_blocks' was introduced to show no new blocks.
@@ -129,7 +129,7 @@ public class EscConst {
         public static final String CHANGE_STATUS_REMOTE_FAILED = "Changing account status on remote node not allowed";
         public static final String COMMAND_PARSE_ERROR = "Parse error, check input data";
         public static final String DUPLICATED_TARGET = "Duplicated target";
-        static final String GET_SIGNATURE_UNAVAILABLE = "Signature is unavailable";
+        public static final String GET_SIGNATURE_UNAVAILABLE = "Signature is unavailable";
     }
 
     /**

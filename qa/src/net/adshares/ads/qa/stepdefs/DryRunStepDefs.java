@@ -5,10 +5,11 @@ import com.google.gson.JsonObject;
 import cucumber.api.java.en.Given;
 import cucumber.api.java.en.Then;
 import cucumber.api.java.en.When;
+import net.adshares.ads.qa.caller.FunctionCaller;
+import net.adshares.ads.qa.caller.command.SendOneTransaction;
 import net.adshares.ads.qa.data.UserData;
 import net.adshares.ads.qa.data.UserDataProvider;
 import net.adshares.ads.qa.util.AssertReason;
-import net.adshares.ads.qa.util.FunctionCaller;
 import net.adshares.ads.qa.util.Utils;
 import org.junit.Assert;
 
@@ -20,14 +21,17 @@ public class DryRunStepDefs {
             new HashSet<>(Arrays.asList("data", "signature", "time", "account_msid", "account_hashin", "account_hashout", "deduct", "fee")));
 
     private UserData userData;
-    private int timestamp;
+    /**
+     * User time of transaction
+     */
+    private int time;
     private JsonObject respTxWithDryRun;
     private JsonObject respTxWithoutDryRun;
 
     @Given("^user, who wants to check dry-run$")
     public void user_who_wants_dry_run() {
         userData = UserDataProvider.getInstance().getUserDataList(1).get(0);
-        timestamp = 10;
+        time = 10;
     }
 
     @When("^user sends transfer (with|without) dry-run$")
@@ -38,7 +42,9 @@ public class DryRunStepDefs {
         if (isDryRun) {
             fc.setDryRun(true);
         }
-        String resp = fc.sendOne(userData, userData.getAddress(), "0.00000000001", timestamp);
+        SendOneTransaction command = new SendOneTransaction(userData, userData.getAddress(), "0.00000000001");
+        command.setTime(time);
+        String resp = fc.sendOne(command);
         JsonObject o = Utils.convertStringToJsonObject(resp);
 
         if (null != o.get("error")) {

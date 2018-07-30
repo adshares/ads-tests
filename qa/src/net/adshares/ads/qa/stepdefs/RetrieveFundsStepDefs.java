@@ -5,6 +5,7 @@ import com.google.gson.JsonObject;
 import cucumber.api.java.en.Given;
 import cucumber.api.java.en.Then;
 import cucumber.api.java.en.When;
+import net.adshares.ads.qa.caller.FunctionCaller;
 import net.adshares.ads.qa.data.UserData;
 import net.adshares.ads.qa.data.UserDataProvider;
 import net.adshares.ads.qa.util.*;

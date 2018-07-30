@@ -18,11 +18,11 @@ public class LogEventTimestamp {
         this.eventNum = eventNum;
     }
 
-    long getTimestamp() {
+    public long getTimestamp() {
         return timestamp;
     }
 
-    int getEventNum() {
+    public int getEventNum() {
         return eventNum;
     }
 

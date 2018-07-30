@@ -6,6 +6,8 @@ import com.google.gson.JsonObject;
 import cucumber.api.java.en.Given;
 import cucumber.api.java.en.Then;
 import cucumber.api.java.en.When;
+import net.adshares.ads.qa.caller.FunctionCaller;
+import net.adshares.ads.qa.caller.command.CreateAccountTransaction;
 import net.adshares.ads.qa.data.UserData;
 import net.adshares.ads.qa.data.UserDataProvider;
 import net.adshares.ads.qa.util.*;
@@ -137,17 +139,19 @@ public class AccountStepDefs {
             assertThat("Not able to find different node id.", nodeId, notNullValue());
             // Function create_account takes node parameter in decimal format
             int node = (nodeId != null) ? Integer.valueOf(nodeId, 16) : 1;
+
+            CreateAccountTransaction command = new CreateAccountTransaction(userData);
+            command.setNode(node);
             if (isCustomKey) {
-                resp = requestRemoteAccountCreation(userData, node, PUBLIC_KEY, SIGNATURE);
-            } else {
-                resp = requestRemoteAccountCreation(userData, node, null, null);
+                command.setPublicKey(PUBLIC_KEY, SIGNATURE);
             }
+            resp = requestRemoteAccountCreation(command);
         } else {
+            CreateAccountTransaction command = new CreateAccountTransaction(userData);
             if (isCustomKey) {
-                resp = fc.createAccount(userData, PUBLIC_KEY, SIGNATURE);
-            } else {
-                resp = fc.createAccount(userData);
+                command.setPublicKey(PUBLIC_KEY, SIGNATURE);
             }
+            resp = fc.createAccount(command);
         }
 
         JsonObject o = Utils.convertStringToJsonObject(resp);
@@ -221,20 +225,16 @@ public class AccountStepDefs {
     /**
      * Requests account creation few times with delay.
      *
-     * @param userData  user data
-     * @param node      node in which account should be created (decimal)
-     * @param publicKey new public key. Null is allowed. If key is null, key will be the same as creator key.
-     * @param signature empty String signed with new private key. Null is allowed. If signature is null, key
-     *                  will not be changed
+     * @param command create account command
      * @return response: json when request was correct, empty otherwise
      */
-    private String requestRemoteAccountCreation(UserData userData, int node, String publicKey, String signature) {
+    private String requestRemoteAccountCreation(CreateAccountTransaction command) {
         String resp = "";
         int attempt = 0;
         int attemptMax = 6;
         while (attempt++ < attemptMax) {
 
-            resp = FunctionCaller.getInstance().createAccount(userData, node, publicKey, signature);
+            resp = FunctionCaller.getInstance().createAccount(command);
             JsonObject o = Utils.convertStringToJsonObject(resp);
 
             if (o.has("error")) {

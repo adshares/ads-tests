@@ -10,7 +10,7 @@ import net.adshares.ads.qa.data.UserData;
 import net.adshares.ads.qa.data.UserDataProvider;
 import net.adshares.ads.qa.util.AssertReason;
 import net.adshares.ads.qa.util.EscConst;
-import net.adshares.ads.qa.util.FunctionCaller;
+import net.adshares.ads.qa.caller.FunctionCaller;
 import net.adshares.ads.qa.util.Utils;
 import org.junit.Assert;
 import org.slf4j.Logger;

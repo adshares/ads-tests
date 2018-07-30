@@ -3,6 +3,7 @@ package net.adshares.ads.qa.util;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import net.adshares.ads.qa.caller.FunctionCaller;
 import net.adshares.ads.qa.data.UserData;
 
 import javax.xml.bind.DatatypeConverter;
@@ -78,7 +79,7 @@ public class EscUtils {
      * @param jsonObject json response for get_log function
      * @return timestamp of last event in log or 0, if log is empty
      */
-    static LogEventTimestamp getLastLogEventTimestamp(JsonObject jsonObject) {
+    public static LogEventTimestamp getLastLogEventTimestamp(JsonObject jsonObject) {
         long timeStamp = 0;
         int eventsCount = 0;
         if (jsonObject.has("log")) {

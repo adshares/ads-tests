@@ -1,6 +1,7 @@
 package net.adshares.ads.qa.util;
 
 import com.google.gson.JsonObject;
+import net.adshares.ads.qa.caller.FunctionCaller;
 import net.adshares.ads.qa.data.UserData;
 import net.adshares.ads.qa.data.UserDataProvider;
 import org.slf4j.Logger;

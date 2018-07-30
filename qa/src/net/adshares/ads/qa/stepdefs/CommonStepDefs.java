@@ -4,7 +4,7 @@ import cucumber.api.java.en.Given;
 import net.adshares.ads.qa.data.UserData;
 import net.adshares.ads.qa.data.UserDataProvider;
 import net.adshares.ads.qa.util.AssertReason;
-import net.adshares.ads.qa.util.FunctionCaller;
+import net.adshares.ads.qa.caller.FunctionCaller;
 import net.adshares.ads.qa.util.LogChecker;
 import net.adshares.ads.qa.util.TransactionIdChecker;
 import org.slf4j.Logger;

@@ -3,11 +3,12 @@ package net.adshares.ads.qa.stepdefs;
 import cucumber.api.java.en.Given;
 import cucumber.api.java.en.Then;
 import cucumber.api.java.en.When;
+import net.adshares.ads.qa.caller.command.SendOneTransaction;
 import net.adshares.ads.qa.data.UserData;
 import net.adshares.ads.qa.data.UserDataProvider;
 import net.adshares.ads.qa.util.AssertReason;
 import net.adshares.ads.qa.util.EscUtils;
-import net.adshares.ads.qa.util.FunctionCaller;
+import net.adshares.ads.qa.caller.FunctionCaller;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -79,7 +80,7 @@ public class NonExistentUserNodeStepDefs {
     private void sendOneWrapper(String address) {
         FunctionCaller fc = FunctionCaller.getInstance();
         sender.setExpBalance(sender.getStartBalance());
-        lastResp = fc.sendOne(sender.getUserData(), address, "0.00000000001");
+        lastResp = fc.sendOne(new SendOneTransaction(sender.getUserData(), address, "0.00000000001"));
     }
 
     private void retrieveFundsWrapper(String address) {

@@ -6,6 +6,9 @@ import com.google.gson.JsonObject;
 import cucumber.api.java.en.Given;
 import cucumber.api.java.en.Then;
 import cucumber.api.java.en.When;
+import net.adshares.ads.qa.caller.FunctionCaller;
+import net.adshares.ads.qa.caller.command.SendManyTransaction;
+import net.adshares.ads.qa.caller.command.SendOneTransaction;
 import net.adshares.ads.qa.data.UserData;
 import net.adshares.ads.qa.data.UserDataProvider;
 import net.adshares.ads.qa.util.*;
@@ -115,19 +118,19 @@ public class TransferStepDefs {
             for (TransferUser txReceiver : txReceivers) {
                 map.put(txReceiver.getUserData().getAddress(), txAmount);
             }
-            jsonResp = fc.sendMany(sender, map);
+            jsonResp = fc.sendMany(new SendManyTransaction(sender, map));
             fee = getTransferFee(senderAddress, map);
         } else {
             // send one
             UserData receiver = txReceivers.get(0).getUserData();
             String receiverAddress = receiver.getAddress();
 
+            SendOneTransaction command = new SendOneTransaction(sender, receiverAddress, txAmount);
             if (withMessage != null) {
                 message = EscUtils.generateMessage(32);
-                jsonResp = fc.sendOne(sender, receiverAddress, txAmount, message);
-            } else {
-                jsonResp = fc.sendOne(sender, receiverAddress, txAmount);
+                command.setMessage(message);
             }
+            jsonResp = fc.sendOne(command);
             fee = getTransferFee(senderAddress, receiverAddress, amount);
         }
         boolean isTransactionAccepted = EscUtils.isTransactionAcceptedByNode(jsonResp);
@@ -446,7 +449,7 @@ public class TransferStepDefs {
             recList.add(data);
         }
 
-        String resp = FunctionCaller.getInstance().sendMany(txSender.getUserData(), recList);
+        String resp = FunctionCaller.getInstance().sendMany(new SendManyTransaction(txSender.getUserData(), recList));
         JsonObject o = Utils.convertStringToJsonObject(resp);
 
         String errorDesc = o.has("error") ? o.get("error").getAsString() : "null";
@@ -461,7 +464,13 @@ public class TransferStepDefs {
 
     @When("^sender sends transfer in which message length is incorrect$")
     public void sender_sends_transfer_incorrect_msg_length() {
-        String resp = FunctionCaller.getInstance().sendOne(txSender.getUserData(), "00FF-00000000-XXXX", "0.00000000001", "ABCD");
+        SendOneTransaction command = new SendOneTransaction(
+                txSender.getUserData(),
+                "00FF-00000000-XXXX",
+                "0.00000000001"
+        );
+        command.setMessage("ABCD");
+        String resp = FunctionCaller.getInstance().sendOne(command);
         JsonObject o = Utils.convertStringToJsonObject(resp);
 
         String errorDesc = o.has("error") ? o.get("error").getAsString() : "null";
