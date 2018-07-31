@@ -19,7 +19,6 @@
 
 package net.adshares.ads.qa.caller.command;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public abstract class AbstractTransaction extends AbstractCommand {
@@ -65,7 +64,7 @@ public abstract class AbstractTransaction extends AbstractCommand {
 
     @Override
     public List<String> getParameters() {
-        List<String> params = new ArrayList<>();
+        List<String> params = super.getParameters();
         if (accountHash != null) {
             params.add(String.format("\"hash\":\"%s\"", accountHash));
         }
@@ -93,17 +92,7 @@ public abstract class AbstractTransaction extends AbstractCommand {
             sb.append("echo '{\"run\":\"get_me\"}';");
         }
 
-        sb.append("echo '{\"run\":\"").append(getName()).append("\"");
-
-        List<String> parameters = getParameters();
-        if (parameters != null) {
-            for (String parameter : parameters) {
-                sb.append(',');
-                sb.append(parameter);
-            }
-        }
-
-        sb.append("}'");
+        sb.append(super.toStringCommand());
 
         sb.append(')');
         return sb.toString();

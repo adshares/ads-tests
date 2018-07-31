@@ -21,6 +21,7 @@ package net.adshares.ads.qa.caller.command;
 
 import net.adshares.ads.qa.data.UserData;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public abstract class AbstractCommand {
@@ -42,12 +43,30 @@ public abstract class AbstractCommand {
     /**
      * @return list of parameters (fields and its' values)
      */
-    protected abstract List<String> getParameters();
+    protected List<String> getParameters() {
+        return new ArrayList<>();
+    }
 
     /**
      * @return command for ADS client
      */
-    public abstract String toStringCommand();
+    public String toStringCommand() {
+        StringBuilder sb = new StringBuilder();
+
+        sb.append("echo '{\"run\":\"").append(getName()).append("\"");
+
+        List<String> parameters = getParameters();
+        if (parameters != null) {
+            for (String parameter : parameters) {
+                sb.append(',');
+                sb.append(parameter);
+            }
+        }
+
+        sb.append("}'");
+
+        return sb.toString();
+    }
 
     /**
      * @return parameters description

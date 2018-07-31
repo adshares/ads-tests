@@ -21,6 +21,7 @@ package net.adshares.ads.qa.caller;
 
 import com.google.gson.*;
 import net.adshares.ads.qa.caller.command.CreateAccountTransaction;
+import net.adshares.ads.qa.caller.command.DecodeRawCommand;
 import net.adshares.ads.qa.caller.command.SendManyTransaction;
 import net.adshares.ads.qa.caller.command.SendOneTransaction;
 import net.adshares.ads.qa.data.UserData;
@@ -212,6 +213,19 @@ public class FunctionCaller {
         String output = callFunction(command);
         output = output.replaceFirst(DOUBLE_RESP_REGEX, "{");
         return output;
+    }
+
+    /**
+     * Calls decode_raw function.
+     *
+     * @param commandObj decode raw command
+     * @return response: json when request was correct, empty otherwise
+     */
+    public String decodeRaw(DecodeRawCommand commandObj) {
+        log.debug(commandObj.toStringLogger());
+        String command = commandObj.toStringCommand().concat(" | ").concat(clientApp).concat(clientAppOpts)
+                .concat(commandObj.getSenderData().getDataAsEscParams());
+        return callFunction(command);
     }
 
     /**

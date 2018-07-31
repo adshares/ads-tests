@@ -49,7 +49,10 @@ public class EscUtils {
         jsonObject = jsonObject.getAsJsonObject("tx");
         boolean hasId = jsonObject.has("id");
         if (hasId) {
-            TransactionIdChecker.getInstance().addTransactionId(jsonObject.get("id").getAsString());
+            String data = jsonObject.get("data").getAsString();
+            String signature = jsonObject.get("signature").getAsString();
+            TransactionIdChecker.getInstance().addTransactionId(jsonObject.get("id").getAsString(), data, signature);
+
         }
         return hasId;
     }
