@@ -326,6 +326,11 @@ public class TransferStepDefs {
                         // transfer received
                         receiverIds.remove(i);
                     }
+                } else {
+                    //skip check for cancelled transfer after two blocks
+                    if (attempt > 20) {
+                        receiverIds.remove(i);
+                    }
                 }
             }
 
