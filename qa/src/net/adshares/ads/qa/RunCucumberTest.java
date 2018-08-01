@@ -26,7 +26,7 @@ import org.junit.runner.RunWith;
 @RunWith(Cucumber.class)
 @CucumberOptions(plugin = {"pretty", "cucumber.runtime.formatter.Slf4jFormatter"})
 //@CucumberOptions(plugin = {"pretty", "cucumber.runtime.formatter.Slf4jFormatter"}, tags = "@account")
-//@CucumberOptions(plugin = {"pretty", "cucumber.runtime.formatter.Slf4jFormatter"}, tags = "@dry-run")
+//@CucumberOptions(plugin = {"pretty", "cucumber.runtime.formatter.Slf4jFormatter"}, tags = "@dry_run")
 //@CucumberOptions(plugin = {"pretty", "cucumber.runtime.formatter.Slf4jFormatter"}, tags = "@get_accounts")
 //@CucumberOptions(plugin = {"pretty", "cucumber.runtime.formatter.Slf4jFormatter"}, tags = "@broadcast")
 //@CucumberOptions(plugin = {"pretty", "cucumber.runtime.formatter.Slf4jFormatter"}, tags = "@function")

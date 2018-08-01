@@ -1,4 +1,4 @@
-@dry-run
+@dry_run
 Feature: Dry-run
 
   Scenario: Check if dry-run return same data
