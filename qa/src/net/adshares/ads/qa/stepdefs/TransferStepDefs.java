@@ -167,6 +167,13 @@ public class TransferStepDefs {
             int eventsCount = 0;
             for (JsonElement je : logArr) {
                 String type = je.getAsJsonObject().get("type").getAsString();
+                long transferTimeLog = je.getAsJsonObject().get("time").getAsLong();
+                if (Long.compare(transferTime, transferTimeLog) != 0) {
+                    // very rarely time of transfer event in log is different than returned in transfer response
+                    // it this case transferTime must be updated as well as eventsCount
+                    transferTime = transferTimeLog;
+                    eventsCount = 0;
+                }
 
                 if (type.matches(REGEX_TRANSFER_TYPE)) {
                     isTransferFound = true;
