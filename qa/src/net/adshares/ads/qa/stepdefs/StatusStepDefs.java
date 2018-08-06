@@ -19,8 +19,6 @@
 
 package net.adshares.ads.qa.stepdefs;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import cucumber.api.java.en.Given;
 import cucumber.api.java.en.Then;
@@ -28,7 +26,10 @@ import cucumber.api.java.en.When;
 import net.adshares.ads.qa.caller.FunctionCaller;
 import net.adshares.ads.qa.data.UserData;
 import net.adshares.ads.qa.data.UserDataProvider;
-import net.adshares.ads.qa.util.*;
+import net.adshares.ads.qa.util.AssertReason;
+import net.adshares.ads.qa.util.EscConst;
+import net.adshares.ads.qa.util.EscUtils;
+import net.adshares.ads.qa.util.Utils;
 import org.junit.Assert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -124,7 +125,7 @@ public class StatusStepDefs {
         List<UserData> userDataList = UserDataProvider.getInstance().getUserDataList();
 
         chgNodePairList = new ArrayList<>();
-        Map<String, Integer> statusMap = getNodeStatusMap(userDataList.get(0));
+        Map<String, Integer> statusMap = EscUtils.getNodeStatusMap(userDataList.get(0));
         if ("remote".equals(otherAccountType)) {
             // remote
             for (UserData u1 : userDataList) {
@@ -281,7 +282,7 @@ public class StatusStepDefs {
 
                 // change node status request block
                 curBit = startBit;
-                Map<String, Integer> statusMap = getNodeStatusMap(chgNodePairList.get(0).getUser());
+                Map<String, Integer> statusMap = EscUtils.getNodeStatusMap(chgNodePairList.get(0).getUser());
                 do {
 
                     // send request
@@ -347,7 +348,7 @@ public class StatusStepDefs {
                 // wait for block
                 EscUtils.waitForNextBlock();
                 EscUtils.waitForNextBlock();
-                statusMap = getNodeStatusMap(chgNodePairList.get(0).getUser());
+                statusMap = EscUtils.getNodeStatusMap(chgNodePairList.get(0).getUser());
 
                 // get node status response block
                 curBit = startBit;
@@ -450,31 +451,6 @@ public class StatusStepDefs {
     private int getAccountStatus() {
         JsonObject o = Utils.convertStringToJsonObject(FunctionCaller.getInstance().getAccount(userData, address));
         return o.getAsJsonObject("account").get("status").getAsInt();
-    }
-
-    /**
-     * Gets nodes status from get_block function response.
-     *
-     * @param userData user data
-     * @return nodes status in map:<br />
-     * - key: node id in hex format - as in account address,<br />
-     * - value: status <br />
-     */
-    private Map<String, Integer> getNodeStatusMap(UserData userData) {
-        Map<String, Integer> m = new HashMap<>();
-
-        String resp = FunctionCaller.getInstance().getBlock(userData);
-        JsonObject o = Utils.convertStringToJsonObject(resp);
-        JsonArray arr = o.getAsJsonObject("block").getAsJsonArray("nodes");
-        for (JsonElement je : arr) {
-            JsonObject nodeEntry = je.getAsJsonObject();
-            m.put(nodeEntry.get("id").getAsString(), nodeEntry.get("status").getAsInt());
-        }
-
-        String reason = new AssertReason.Builder().msg("Cannot get any node status.")
-                .req(FunctionCaller.getInstance().getLastRequest()).res(resp).build();
-        assertThat(reason, m.size() > 0);
-        return m;
     }
 
     private String formatSetLog(Set<Integer> intSet) {

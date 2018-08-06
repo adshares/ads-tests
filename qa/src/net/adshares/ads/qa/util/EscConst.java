@@ -121,10 +121,30 @@ public class EscConst {
      * TXS_SAV_FEE log account fee
      */
     public static final BigDecimal LOG_ACCOUNT_FEE = new BigDecimal("0.00010000000");
+//    /**
+//     * Part of fee that will be add to dividend account
+//     */
+//    public static final BigDecimal FEE_SHARE_DIVIDEND = new BigDecimal("0.8");
+//    /**
+//     * Part of fee that will be add to node account
+//     */
+//    public static final BigDecimal FEE_SHARE_NODE = BigDecimal.ONE.subtract(FEE_SHARE_DIVIDEND);
+    /**
+     * Part of node fee that will be add to top and vip nodes accounts
+     */
+    public static final BigDecimal FEE_SHARE_NODE_TOP_VIP = new BigDecimal("0.4");
+//    /**
+//     * Part of node fee that will be add to own account
+//     */
+//    public static final BigDecimal FEE_SHARE_NODE_OWN = BigDecimal.ONE.subtract(FEE_SHARE_NODE_TOP_VIP);
     /**
      * VIP_MAX maximum number of vip nodes
      */
     public static final int VIP_MAX = 7;
+    /**
+     * TOP_MAX maximum number of top nodes
+     */
+    public static final int TOP_MAX = 10;
 
     /**
      * Error messages

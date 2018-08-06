@@ -26,7 +26,11 @@ import net.adshares.ads.qa.caller.FunctionCaller;
 import net.adshares.ads.qa.data.UserData;
 
 import javax.xml.bind.DatatypeConverter;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Random;
+
+import static org.hamcrest.MatcherAssert.assertThat;
 
 public class EscUtils {
     /**
@@ -175,6 +179,31 @@ public class EscUtils {
         }
 
         return status;
+    }
+
+    /**
+     * Gets nodes status from get_block function response.
+     *
+     * @param userData user data
+     * @return nodes status in map:<br />
+     * - key: node id in hex format - as in account address,<br />
+     * - value: status <br />
+     */
+    public static Map<String, Integer> getNodeStatusMap(UserData userData) {
+        Map<String, Integer> map = new HashMap<>();
+
+        String resp = FunctionCaller.getInstance().getBlock(userData);
+        JsonObject o = Utils.convertStringToJsonObject(resp);
+        JsonArray arr = o.getAsJsonObject("block").getAsJsonArray("nodes");
+        for (JsonElement je : arr) {
+            JsonObject nodeEntry = je.getAsJsonObject();
+            map.put(nodeEntry.get("id").getAsString(), nodeEntry.get("status").getAsInt());
+        }
+
+        String reason = new AssertReason.Builder().msg("Cannot get any node status.")
+                .req(FunctionCaller.getInstance().getLastRequest()).res(resp).build();
+        assertThat(reason, map.size() > 0);
+        return map;
     }
 
     /**
