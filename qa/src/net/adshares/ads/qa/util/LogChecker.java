@@ -28,6 +28,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 
 public class LogChecker {
 
@@ -74,7 +76,7 @@ public class LogChecker {
     }
 
     /**
-     * Sums all operations in log
+     * Sums all operations in log.
      *
      * @return balance computed from operations in user log array
      */
@@ -83,7 +85,8 @@ public class LogChecker {
     }
 
     /**
-     * Sums log operations that match filter
+     * Sums log operations that match filter. Outgoing send_many transfer should not be split into single events
+     * due to sender_fee calculation.
      *
      * @param filter LogFilter, null for all operations
      * @return balance computed from filtered operations in user log array
@@ -98,6 +101,13 @@ public class LogChecker {
         JsonElement jsonElementLog = jsonResp.get("log");
         if (jsonElementLog.isJsonArray()) {
             JsonArray jsonArrayLog = jsonElementLog.getAsJsonArray();
+            /*
+            In case of "send_many" event, field "sender_fee" is not reliable. It's value is not always correct.
+            Current solution is depended on that all out transfers are counted together.
+            Field "sender_fee_total" value is subtract once for all "send_many" events with same id.
+             */
+            List<String> sendManyTxIds = new ArrayList<>();
+
             for (JsonElement je : jsonArrayLog) {
                 JsonObject logEntry = je.getAsJsonObject();
                 // text log entry type
@@ -117,7 +127,7 @@ public class LogChecker {
 
                 BigDecimal amount;
                 if ("create_account".equals(type)
-                        || "send_one".equals(type) || "send_many".equals(type)
+                        || "send_one".equals(type)
                         || "broadcast".equals(type) // type_no == 3
                         || ("retrieve_funds".equals(type) && "8".equals(typeNo)) // retrieve_funds call
                         || "log_account".equals(type) // type_no == 15
@@ -128,8 +138,23 @@ public class LogChecker {
                         amount = amount.subtract(senderFee);
                     }
 
+                } else if ("send_many".equals(type)) {
+                    amount = logEntry.get("amount").getAsBigDecimal();
+                    if (logEntry.has("inout") && "out".equals(logEntry.get("inout").getAsString())) {
+
+                        // please, check description of sendManyTxIds
+                        String id = logEntry.get("id").getAsString();
+                        if (!sendManyTxIds.contains(id)) {
+                            sendManyTxIds.add(id);
+
+                            BigDecimal senderFee = logEntry.get("sender_fee_total").getAsBigDecimal();
+                            log.debug("send_many with fee_total ({})", senderFee.toPlainString());
+                            amount = amount.subtract(senderFee);
+                        }
+                    }
+
                 } else if ("dividend".equals(type)) {
-                    amount = new BigDecimal(logEntry.get("dividend").getAsString());
+                    amount = logEntry.get("dividend").getAsBigDecimal();
 
                 } else if ("node_started".equals(type)) {// type_no == 32768
                     amount = logEntry.getAsJsonObject("account").get("balance").getAsBigDecimal();

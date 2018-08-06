@@ -15,3 +15,9 @@ Feature: Fee sharing
     Given top group includes all from vip group
     When collect all logs
     Then profit shared is as expected
+
+  Scenario: Check log
+    Given user log
+
+  Scenario: Check transaction
+    Given transaction ids
