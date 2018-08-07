@@ -42,10 +42,6 @@ import static org.hamcrest.Matchers.*;
 
 public class FeeSharingStepDefs {
 
-    /**
-     * Maximal allowed difference (+/-) between computed and log profit_shared.
-     */
-    private static final BigDecimal ALLOWED_DIFF = new BigDecimal("0.00000000002");
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     /**
@@ -84,7 +80,6 @@ public class FeeSharingStepDefs {
 
         FunctionCaller fc = FunctionCaller.getInstance();
 
-//        BigDecimal amount = BigDecimal.ONE;
         BigDecimal amount = new BigDecimal("10");
         Map<String, String> wires = new HashMap<>();
         for (int i = topList.size() - 1; i >= 0; i--) {
@@ -178,7 +173,7 @@ public class FeeSharingStepDefs {
                     // vip node, which doesn't belong to top, doesn't share profitToShare
                     profitData.profitToShare = BigDecimal.ZERO;
                 } else {
-                    profitData.profitToShare = userProfit.multiply(EscConst.FEE_SHARE_NODE_TOP_VIP).setScale(11, BigDecimal.ROUND_FLOOR);
+                    profitData.profitToShare = userProfit;
                 }
                 userProfitMap.put(nodeId, profitData);
             } else {
@@ -201,13 +196,15 @@ public class FeeSharingStepDefs {
             sb.append(":\n");
 
             ProfitData profitData = userProfitMap.get(nodeId);
-            BigDecimal expectedProfitShared = profitData.share.subtract(profitData.profitToShare);
-            BigDecimal diff = expectedProfitShared.subtract(profitData.profitSharedLog);
+            BigDecimal expectedProfitShared = profitData.share.subtract(EscConst.getSharedProfitForTopVip(profitData.profitToShare));
             sb.append(String.format("\texp : %s-%s=%s\n", profitData.share.toPlainString(), profitData.profitToShare.toPlainString(), expectedProfitShared.toPlainString()));
             sb.append(String.format("\tact : %s\n", profitData.profitSharedLog));
+
+            BigDecimal diff = expectedProfitShared.subtract(profitData.profitSharedLog);
             sb.append(String.format("\tdiff: %s\n", diff.toPlainString()));
+
             log.debug(sb.toString());
-            assertThat(sb.toString(), diff.abs(), lessThanOrEqualTo(ALLOWED_DIFF));
+            assertThat(sb.toString(), profitData.profitSharedLog, comparesEqualTo(expectedProfitShared));
         }
         log.debug("--------------------------------------------------------");
     }
@@ -234,9 +231,11 @@ public class FeeSharingStepDefs {
             totalProfitToShare = totalProfitToShare.add(profitData.profitToShare);
         }
         int shareCount = topList.size() + vipList.size();
-        BigDecimal sharePerUser = totalProfitToShare.divide(new BigDecimal(shareCount), 11, BigDecimal.ROUND_FLOOR);
         log.debug("totalProfitToShare: {}", totalProfitToShare.toPlainString());
-        log.debug("sharePerUser      : {}", sharePerUser.toPlainString());
+        BigDecimal sharePerUser = totalProfitToShare.divide(new BigDecimal(shareCount), 11, BigDecimal.ROUND_FLOOR);
+        log.debug("sharePerUser1     : {}", sharePerUser.toPlainString());
+        sharePerUser = EscConst.getSharedProfitForTopVip(sharePerUser);
+        log.debug("sharePerUser2     : {}", sharePerUser.toPlainString());
 
         for (String user : topList) {
             ProfitData profitData = userProfitMap.get(user);

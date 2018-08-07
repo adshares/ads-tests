@@ -121,22 +121,6 @@ public class EscConst {
      * TXS_SAV_FEE log account fee
      */
     public static final BigDecimal LOG_ACCOUNT_FEE = new BigDecimal("0.00010000000");
-//    /**
-//     * Part of fee that will be add to dividend account
-//     */
-//    public static final BigDecimal FEE_SHARE_DIVIDEND = new BigDecimal("0.8");
-//    /**
-//     * Part of fee that will be add to node account
-//     */
-//    public static final BigDecimal FEE_SHARE_NODE = BigDecimal.ONE.subtract(FEE_SHARE_DIVIDEND);
-    /**
-     * Part of node fee that will be add to top and vip nodes accounts
-     */
-    public static final BigDecimal FEE_SHARE_NODE_TOP_VIP = new BigDecimal("0.4");
-//    /**
-//     * Part of node fee that will be add to own account
-//     */
-//    public static final BigDecimal FEE_SHARE_NODE_OWN = BigDecimal.ONE.subtract(FEE_SHARE_NODE_TOP_VIP);
     /**
      * VIP_MAX maximum number of vip nodes
      */
@@ -145,6 +129,21 @@ public class EscConst {
      * TOP_MAX maximum number of top nodes
      */
     public static final int TOP_MAX = 10;
+
+    /**
+     * Returns part of profit, which will be add to top/vip profit pool.
+     * Due to rounding in ADS division and multiplication by integers is not equal to multiplication by fraction.
+     * Eg. x/5*2 != x*0.4
+     *
+     * @param profit user profit during block
+     * @return amount, which will be add to top/vip profit pool
+     */
+    public static BigDecimal getSharedProfitForTopVip(BigDecimal profit) {
+        return profit
+                .divide(new BigDecimal(5), 11, BigDecimal.ROUND_FLOOR)
+                .multiply(new BigDecimal(2))
+                .setScale(11, BigDecimal.ROUND_FLOOR);
+    }
 
     /**
      * Error messages
