@@ -149,8 +149,8 @@ public class FeeSharingStepDefs {
                     JsonObject o = el.getAsJsonObject();
 
                     BigDecimal profit = o.get("profit").getAsBigDecimal();
-                    log.debug("\tprofit: {}", profit.toPlainString());
                     if (o.has("profit_shared")) {
+                        log.debug("\tprofit: {}", profit.toPlainString());
                         // if profit_shared is present, it must be subtracted from profitToShare
                         BigDecimal profitShared = o.get("profit_shared").getAsBigDecimal();
                         profitData.profitSharedLog = profitShared;
@@ -159,7 +159,9 @@ public class FeeSharingStepDefs {
                         log.debug("\tshared: {}", profitShared.toPlainString());
                         log.debug("\tpro-sh: {}", profitDiff.toPlainString());
                     } else {
-                        userProfit = userProfit.add(profit);
+                        BigDecimal fee = o.get("fee").getAsBigDecimal();
+                        log.debug("\tprofit: {}", profit.subtract(fee).toPlainString());
+                        userProfit = userProfit.add(profit).subtract(fee);
                     }
                 }
                 String reason = new AssertReason.Builder()
