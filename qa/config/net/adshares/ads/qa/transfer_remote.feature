@@ -36,6 +36,11 @@ Feature: Remote transfers
     Then receiver balance is as expected (changed by amount)
     And sender balance is as expected (changed by amount and fee)
 
+  Scenario: Send many with summary amount exceeding balance (invalid)
+    Given 3 users in same node
+    When sender sends many transfers which sum exceeds balance
+    Then transfer is rejected
+
   Scenario: Send transfer with message
     Given 2 users in different node
     When sender sends 0.00001000000 ADS to receiver with message

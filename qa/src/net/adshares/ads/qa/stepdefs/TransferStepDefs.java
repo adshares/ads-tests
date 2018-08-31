@@ -54,6 +54,7 @@ public class TransferStepDefs {
     private TransferUser txSender;
     private List<TransferUser> txReceivers;
     private String message;
+    private boolean isTransactionAccepted;
 
 
     @Given("^(\\d+) users in (same|different) node$")
@@ -513,7 +514,32 @@ public class TransferStepDefs {
         isTransactionAccepted = EscUtils.isTransactionAcceptedByNode(o);
     }
 
-    private boolean isTransactionAccepted;
+    @When("^sender sends many transfers which sum exceeds balance$")
+    public void sender_sends_many_transfers_which_sum_exceeds_balance() {
+        /*
+        Sends to multiple recipents.
+        Each wire amount is less than balance (0.6 of balance), but sum of wires exceeds balance.
+         */
+        BigDecimal balance = txSender.getStartBalance();
+        BigDecimal amount = balance.multiply(new BigDecimal("0.6")).setScale(11, BigDecimal.ROUND_FLOOR);
+        String amountAsString = amount.toPlainString();
+
+        Map<String, String> map = new HashMap<>(txReceivers.size());
+        for (TransferUser txReceiver : txReceivers) {
+            map.put(txReceiver.getUserData().getAddress(), amountAsString);
+        }
+
+        String resp = FunctionCaller.getInstance().sendMany(new SendManyTransaction(txSender.getUserData(), map));
+        JsonObject o = Utils.convertStringToJsonObject(resp);
+
+        String errorDesc = o.has("error") ? o.get("error").getAsString() : "null";
+        String reason = new AssertReason.Builder().req(FunctionCaller.getInstance().getLastRequest()).res(resp)
+                .msg("Unexpected error for send multiple transfers with amount: " + amount).build();
+        assertThat(reason, errorDesc, equalTo(EscConst.Error.TOO_LOW_BALANCE));
+
+        isTransactionAccepted = EscUtils.isTransactionAcceptedByNode(o);
+    }
+
 
     @When("^sender sends transfer in which message length is incorrect$")
     public void sender_sends_transfer_incorrect_msg_length() {

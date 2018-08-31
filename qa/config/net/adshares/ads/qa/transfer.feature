@@ -46,9 +46,14 @@ Feature: Local transfers
     When sender sends many transfers with 40000000 ADS amount
     Then transfer is rejected
 
-  Scenario: Send many to single (invalid)
+  Scenario: Send many to single receiver (invalid)
     Given user, who wants to send transfer
     When sender sends many transfers to single receiver
+    Then transfer is rejected
+
+  Scenario: Send many with summary amount exceeding balance (invalid)
+    Given 3 users in same node
+    When sender sends many transfers which sum exceeds balance
     Then transfer is rejected
 
   Scenario: Send transfer with message
