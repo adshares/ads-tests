@@ -132,6 +132,10 @@ public class TransferStepDefs {
         // transfer fee payed by sender
         BigDecimal fee;
         String jsonResp;
+
+        BigDecimal senderBalance = fc.getUserAccountBalance(txSender);
+        txSender.setStartBalance(senderBalance);
+
         if (receiversCount > 1) {
             // send many
             Map<String, String> map = new HashMap<>(receiversCount);
@@ -157,7 +161,6 @@ public class TransferStepDefs {
         if (isTransactionAccepted) {
             JsonObject o = Utils.convertStringToJsonObject(jsonResp);
             o = o.getAsJsonObject("account");
-            BigDecimal balanceBeforeTransfer = o.get("balance").getAsBigDecimal();
             long transferTime = o.get("time").getAsLong();
 
             o = Utils.convertStringToJsonObject(fc.getLog(sender, transferTime));
@@ -186,12 +189,11 @@ public class TransferStepDefs {
                 ++eventsCount;
             }
 
-            txSender.setStartBalance(balanceBeforeTransfer);
             LogEventTimestamp lastEventTimestamp = new LogEventTimestamp(transferTime, eventsCount);
             txSender.setLastEventTimestamp(lastEventTimestamp.incrementEventNum());
         }
 
-        BigDecimal senderBalance = txSender.getStartBalance();
+
         BigDecimal tmpSenderExpBalance = senderBalance.subtract(amountOut).subtract(fee);
         BigDecimal minAccountBalance = sender.getMinAllowedBalance();
 
