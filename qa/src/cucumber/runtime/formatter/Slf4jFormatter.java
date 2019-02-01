@@ -212,7 +212,7 @@ public class Slf4jFormatter implements Formatter {
             }
         }
         if (beginIndex != stepText.length()) {
-            String text = stepText.substring(beginIndex, stepText.length());
+            String text = stepText.substring(beginIndex);
             result.append(text);
         }
         return result.toString();
