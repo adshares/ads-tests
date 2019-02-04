@@ -25,7 +25,6 @@ import com.google.gson.JsonObject;
 import net.adshares.ads.qa.caller.FunctionCaller;
 import net.adshares.ads.qa.data.UserData;
 
-import javax.xml.bind.DatatypeConverter;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
@@ -83,9 +82,12 @@ public class EscUtils {
         if (size > MESSAGE_SIZE_MAX) {
             size = MESSAGE_SIZE_MAX;
         }
-        byte[] resBuf = new byte[size];
-        random.nextBytes(resBuf);
-        return DatatypeConverter.printHexBinary(resBuf);
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < size; i++) {
+            sb.append(String.format("%02X", random.nextInt(256)));
+        }
+
+        return sb.toString();
     }
 
     /**
