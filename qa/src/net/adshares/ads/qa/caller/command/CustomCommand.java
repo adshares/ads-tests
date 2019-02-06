@@ -37,6 +37,10 @@ public class CustomCommand extends AbstractCommand {
 
     @Override
     public String toStringCommand() {
+        if (command.contains("echo")) {
+            return command;
+        }
+
         return String.format("echo '%s'", command);
     }
 

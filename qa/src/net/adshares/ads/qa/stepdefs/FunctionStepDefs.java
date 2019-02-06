@@ -25,11 +25,13 @@ import com.google.gson.JsonObject;
 import cucumber.api.java.en.Given;
 import cucumber.api.java.en.Then;
 import cucumber.api.java.en.When;
+import net.adshares.ads.qa.caller.command.CustomCommand;
 import net.adshares.ads.qa.data.UserData;
 import net.adshares.ads.qa.data.UserDataProvider;
 import net.adshares.ads.qa.util.AssertReason;
 import net.adshares.ads.qa.util.EscConst;
 import net.adshares.ads.qa.caller.FunctionCaller;
+import net.adshares.ads.qa.util.EscUtils;
 import net.adshares.ads.qa.util.Utils;
 import org.junit.Assert;
 import org.slf4j.Logger;
@@ -49,6 +51,8 @@ public class FunctionStepDefs {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
+    private final static int MAX_EXTRA_DATA_SIZE_IN_BYTES = 16000;
+
     private int node;
     private String response;
     private String txId;
@@ -60,6 +64,14 @@ public class FunctionStepDefs {
 
         userData = userDataList.get(new Random().nextInt(userDataList.size()));
         log.debug("Selected user {} for function {} test", userData.getAddress(), function);
+    }
+
+    @Given("^user, who will check extra_data parameter$")
+    public void user_who_check_extra_data() {
+        List<UserData> userDataList = UserDataProvider.getInstance().getMainUserDataList();
+
+        userData = userDataList.get(0);
+        log.debug("Selected user {} for extra_data test", userData.getAddress());
     }
 
     @When("^user calls log_account function$")
@@ -142,6 +154,48 @@ public class FunctionStepDefs {
         assertThat(arb.msg("Different number of accounts.").build(), accountCountGetAccounts, equalTo(accountCountGetBlock));
     }
 
+    @When("^user call all functions with extra data$")
+    public void user_calls_all_functions_with_extra_data() {
+        Random random = new Random();
+
+        String vipHash = getViphash(userData);
+        String nodePublicKey = getNodePublicKey(userData);
+        String userPublicKey = "A9C0D972D8AAB73805EC4A28291E052E3B5FAFE0ADC9D724917054E5E2690363";
+        String userEmptyStringSignature = "CE5BDDAED1392710A4252B7A636D8D44F2FD0272D6005450F1A834A8B9301EC8BAA59CFC8C5548B8936D76853FAFF64835262BEEBD948A5C4DE2338279A10801";
+
+        String command = "("
+                + String.format("echo '{\"run\":\"get_me\", \"extra_data\":\"%s\"}';", EscUtils.generateMessage(MAX_EXTRA_DATA_SIZE_IN_BYTES))
+                + String.format("echo '{\"run\":\"get_account\",\"address\":\"0001-00000000-XXXX\", \"extra_data\":\"%s\"}';", EscUtils.generateMessage(random.nextInt(MAX_EXTRA_DATA_SIZE_IN_BYTES + 1)))
+                + String.format("echo '{\"run\":\"get_accounts\",\"node\":\"1\", \"extra_data\":\"%s\"}';", EscUtils.generateMessage(random.nextInt(MAX_EXTRA_DATA_SIZE_IN_BYTES + 1)))
+                + String.format("echo '{\"run\":\"get_block\", \"extra_data\":\"%s\"}';", EscUtils.generateMessage(random.nextInt(MAX_EXTRA_DATA_SIZE_IN_BYTES + 1)))
+                + String.format("echo '{\"run\":\"get_blocks\", \"extra_data\":\"%s\"}';", EscUtils.generateMessage(random.nextInt(MAX_EXTRA_DATA_SIZE_IN_BYTES + 1)))
+                + String.format("echo '{\"run\":\"get_broadcast\", \"extra_data\":\"%s\"}';", EscUtils.generateMessage(random.nextInt(MAX_EXTRA_DATA_SIZE_IN_BYTES + 1)))
+                + String.format("echo '{\"run\":\"get_log\", \"extra_data\":\"%s\"}';", EscUtils.generateMessage(random.nextInt(MAX_EXTRA_DATA_SIZE_IN_BYTES + 1)))
+                + String.format("echo '{\"run\":\"get_message\", \"message_id\":\"0001:00000001\", \"extra_data\":\"%s\"}';", EscUtils.generateMessage(random.nextInt(MAX_EXTRA_DATA_SIZE_IN_BYTES + 1)))
+                + String.format("echo '{\"run\":\"get_message_list\", \"extra_data\":\"%s\"}';", EscUtils.generateMessage(random.nextInt(MAX_EXTRA_DATA_SIZE_IN_BYTES + 1)))
+                + String.format("echo '{\"run\":\"get_transaction\", \"txid\":\"0001:00000001:0001\", \"extra_data\":\"%s\"}';", EscUtils.generateMessage(random.nextInt(MAX_EXTRA_DATA_SIZE_IN_BYTES + 1)))
+                + String.format("echo '{\"run\":\"get_signatures\", \"extra_data\":\"%s\"}';", EscUtils.generateMessage(random.nextInt(MAX_EXTRA_DATA_SIZE_IN_BYTES + 1)))
+                + String.format("echo '{\"run\":\"get_vipkeys\", \"viphash\":\"%s\", \"extra_data\":\"%s\"}';", vipHash, EscUtils.generateMessage(random.nextInt(MAX_EXTRA_DATA_SIZE_IN_BYTES + 1)))
+                + String.format("echo '{\"run\":\"decode_raw\", \"data\":\"0301000000000001000000A1679B5B010000\", \"extra_data\":\"%s\"}';", EscUtils.generateMessage(random.nextInt(MAX_EXTRA_DATA_SIZE_IN_BYTES + 1)))
+                + String.format("echo '{\"run\":\"create_account\", \"extra_data\":\"%s\"}';", EscUtils.generateMessage(random.nextInt(MAX_EXTRA_DATA_SIZE_IN_BYTES + 1)))
+                + String.format("echo '{\"run\":\"create_node\", \"extra_data\":\"%s\"}';", EscUtils.generateMessage(random.nextInt(MAX_EXTRA_DATA_SIZE_IN_BYTES + 1)))
+                + String.format("echo '{\"run\":\"log_account\", \"extra_data\":\"%s\"}';", EscUtils.generateMessage(random.nextInt(MAX_EXTRA_DATA_SIZE_IN_BYTES + 1)))
+                + String.format("echo '{\"run\":\"retrieve_funds\",\"address\":\"0002-00000000-XXXX\", \"extra_data\":\"%s\"}';", EscUtils.generateMessage(random.nextInt(MAX_EXTRA_DATA_SIZE_IN_BYTES + 1)))
+                + String.format("echo '{\"run\":\"change_account_key\",\"public_key\":\"%s\",\"confirm\":\"%s\", \"extra_data\":\"%s\"}';", userPublicKey, userEmptyStringSignature, EscUtils.generateMessage(random.nextInt(MAX_EXTRA_DATA_SIZE_IN_BYTES + 1)))
+                + String.format("echo '{\"run\":\"change_node_key\",\"public_key\":\"%s\", \"extra_data\":\"%s\"}';", nodePublicKey, EscUtils.generateMessage(random.nextInt(MAX_EXTRA_DATA_SIZE_IN_BYTES + 1)))
+                + String.format("echo '{\"run\":\"send_one\",\"address\":\"0001-00000000-XXXX\",\"amount\":\"1\", \"extra_data\":\"%s\"}';", EscUtils.generateMessage(random.nextInt(MAX_EXTRA_DATA_SIZE_IN_BYTES + 1)))
+                + String.format("echo '{\"run\":\"send_many\",\"wires\":{\"0001-00000000-XXXX\":\"1\", \"0002-00000000-XXXX\":\"1\"}, \"extra_data\":\"%s\"}';", EscUtils.generateMessage(random.nextInt(MAX_EXTRA_DATA_SIZE_IN_BYTES + 1)))
+                + "echo '{\"run\":\"get_me\"}')";
+
+        CustomCommand customCommand = new CustomCommand(userData, command);
+        response = FunctionCaller.getInstance().callCustomCommand(customCommand);
+    }
+
+    @Then("^node will work$")
+    public void node_will_work() {
+
+    }
+
     /**
      * Returns number of accounts in node.
      *
@@ -150,6 +204,7 @@ public class FunctionStepDefs {
      */
     private int getNodeAccountCountFromGetAccounts(JsonObject accountsObj) {
         JsonArray accArr = accountsObj.getAsJsonArray("accounts");
+
         return accArr.size();
     }
 
@@ -173,6 +228,33 @@ public class FunctionStepDefs {
                 break;
             }
         }
+
         return accountCount;
+    }
+
+    private String getViphash(UserData userData) {
+        JsonObject o = Utils.convertStringToJsonObject(FunctionCaller.getInstance().getBlock(userData));
+        JsonObject block = o.get("block").getAsJsonObject();
+
+        return block.get("viphash").getAsString();
+    }
+
+    private String getNodePublicKey(UserData userData) {
+        String publicKey = null;
+        String nodeId = userData.getNodeId();
+
+        JsonObject o = Utils.convertStringToJsonObject(FunctionCaller.getInstance().getBlock(userData));
+        JsonObject block = o.get("block").getAsJsonObject();
+        JsonArray nodes = block.getAsJsonArray("nodes");
+        int nodesCount = nodes.size();
+        for (int i = 0; i < nodesCount; i++) {
+            JsonObject node = nodes.get(i).getAsJsonObject();
+            if (nodeId.equals(node.get("id").getAsString())) {
+                publicKey = node.get("public_key").getAsString();
+                break;
+            }
+        }
+
+        return publicKey;
     }
 }

@@ -12,3 +12,9 @@ Feature: Function
     Given user, who will check log_account function
     When user calls log_account function
     Then user is able to get signature
+
+  @extra_data
+  Scenario: Check extra data
+    Given user, who will check extra_data parameter
+    When user call all functions with extra data
+    Then node will work
