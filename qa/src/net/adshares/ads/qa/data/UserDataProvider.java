@@ -104,6 +104,17 @@ public class UserDataProvider {
         return nodeSet.size();
     }
 
+    public List<UserData> getMainUserDataList() {
+        ArrayList<UserData> userDataList = new ArrayList<>();
+        for (UserData user : users) {
+            if (user.isMainAccount()) {
+                userDataList.add(user);
+            }
+        }
+
+        return userDataList;
+    }
+
     public List<UserData> getUserDataList() {
         return getUserDataList(users.size());
     }
