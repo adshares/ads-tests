@@ -20,10 +20,7 @@
 package net.adshares.ads.qa.caller;
 
 import com.google.gson.*;
-import net.adshares.ads.qa.caller.command.CreateAccountTransaction;
-import net.adshares.ads.qa.caller.command.DecodeRawCommand;
-import net.adshares.ads.qa.caller.command.SendManyTransaction;
-import net.adshares.ads.qa.caller.command.SendOneTransaction;
+import net.adshares.ads.qa.caller.command.*;
 import net.adshares.ads.qa.data.UserData;
 import net.adshares.ads.qa.stepdefs.TransferUser;
 import net.adshares.ads.qa.util.*;
@@ -191,13 +188,7 @@ public class FunctionCaller {
      * @return response: json when request was correct, empty otherwise
      */
     public String createAccount(CreateAccountTransaction createAccountTransaction) {
-        log.debug(createAccountTransaction.toStringLogger());
-
-        String command = createAccountTransaction.toStringCommand().concat(" | ").concat(clientApp).concat(clientAppOpts)
-                .concat(createAccountTransaction.getSenderData().getDataAsEscParams());
-        String output = callFunction(command);
-        output = output.replaceFirst(DOUBLE_RESP_REGEX, "{");
-        return output;
+        return sendTransaction(createAccountTransaction);
     }
 
     /**
@@ -663,11 +654,7 @@ public class FunctionCaller {
      * @return response: json when request was correct, empty otherwise
      */
     public String sendOne(SendOneTransaction sendOneTransaction) {
-        log.debug(sendOneTransaction.toStringLogger());
-        String command = sendOneTransaction.toStringCommand().concat(" | ").concat(clientApp).concat(clientAppOpts)
-                .concat(sendOneTransaction.getSenderData().getDataAsEscParams());
-        String output = callFunction(command);
-        return output.replaceFirst(DOUBLE_RESP_REGEX, "{");
+        return sendTransaction(sendOneTransaction);
     }
 
     /**
@@ -677,9 +664,13 @@ public class FunctionCaller {
      * @return response: json when request was correct, empty otherwise
      */
     public String sendMany(SendManyTransaction sendManyTransaction) {
-        log.debug(sendManyTransaction.toStringLogger());
-        String command = sendManyTransaction.toStringCommand().concat(" | ").concat(clientApp).concat(clientAppOpts)
-                .concat(sendManyTransaction.getSenderData().getDataAsEscParams());
+        return sendTransaction(sendManyTransaction);
+    }
+
+    private String sendTransaction(AbstractTransaction transaction) {
+        log.debug(transaction.toStringLogger());
+        String command = transaction.toStringCommand().concat(" | ").concat(clientApp).concat(clientAppOpts)
+                .concat(transaction.getSenderData().getDataAsEscParams());
         String output = callFunction(command);
         output = output.replaceFirst(DOUBLE_RESP_REGEX, "{");
         return output;
@@ -831,6 +822,14 @@ public class FunctionCaller {
         String output = callFunction(command);
         output = output.replaceFirst(DOUBLE_RESP_REGEX, "{");
         return output;
+    }
+
+    public String callCustomCommand(CustomCommand customCommand) {
+        log.debug(customCommand.toStringLogger());
+        String command = customCommand.toStringCommand().concat(" | ")
+                .concat(clientApp).concat(clientAppOpts).concat(customCommand.getSenderData().getDataAsEscParams());
+
+        return callFunction(command);
     }
 
     /**
