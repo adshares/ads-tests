@@ -51,7 +51,7 @@ public class FunctionStepDefs {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    private final static int MAX_EXTRA_DATA_SIZE_IN_BYTES = 16000;
+    private final static int MAX_EXTRA_DATA_SIZE_IN_BYTES = 32000;
 
     private int node;
     private String response;
