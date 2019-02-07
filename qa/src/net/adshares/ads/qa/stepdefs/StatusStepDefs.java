@@ -261,6 +261,15 @@ public class StatusStepDefs {
         FunctionCaller fc = FunctionCaller.getInstance();
         successfullyChangedBitsSet = new HashSet<>();
 
+        // This delay was added in case of error with vip node status change
+        // TODO check, if it solves the problem with tests on Travis
+        try {
+            Thread.sleep(EscConst.BLOCK_PERIOD_MS);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        EscUtils.waitForNextBlock();
+
         final int maxChangeCount = 2;
         String resp;
         BigDecimal expectedFee;
@@ -284,7 +293,6 @@ public class StatusStepDefs {
                 curBit = startBit;
                 Map<String, Integer> statusMap = EscUtils.getNodeStatusMap(chgNodePairList.get(0).getUser());
                 do {
-
                     // send request
                     int curBitValue = 1 << curBit;
                     ChangeNodePair cnp = chgNodePairList.get(curBit % groupCnt);
