@@ -145,31 +145,33 @@ public class AccountStepDefs {
         assertThat(reason, feeFromLog, comparesEqualTo(EscConst.CHANGE_ACCOUNT_KEY_FEE));
     }
 
-    @When("^user creates( remote)? account( with custom key)?$")
-    public void user_creates_account(String accountType, String customKey) {
+    @When("^user creates( remote)? account( with custom key)?( in dividend block)?$")
+    public void user_creates_account(String accountType, String customKey, String dividendBlock) {
         boolean isRemote = " remote".equals(accountType);
         boolean isCustomKey = " with custom key".equals(customKey);
+        boolean inDividendBlock = " in dividend block".equals(dividendBlock);
         FunctionCaller fc = FunctionCaller.getInstance();
 
         String resp;
+        CreateAccountTransaction command = new CreateAccountTransaction(userData);
+        if (isCustomKey) {
+            command.setPublicKey(PUBLIC_KEY, SIGNATURE);
+        }
+
         if (isRemote) {
             String userNodeId = userData.getNodeId();
             String nodeId = getDifferentNodeId(userData, userNodeId);
             assertThat("Not able to find different node id.", nodeId, notNullValue());
             // Function create_account takes node parameter in decimal format
             int node = (nodeId != null) ? Integer.valueOf(nodeId, 16) : 1;
-
-            CreateAccountTransaction command = new CreateAccountTransaction(userData);
             command.setNode(node);
-            if (isCustomKey) {
-                command.setPublicKey(PUBLIC_KEY, SIGNATURE);
-            }
-            resp = requestRemoteAccountCreation(command);
+
+            resp = requestRemoteAccountCreation(command, inDividendBlock);
         } else {
-            CreateAccountTransaction command = new CreateAccountTransaction(userData);
-            if (isCustomKey) {
-                command.setPublicKey(PUBLIC_KEY, SIGNATURE);
+            if (inDividendBlock) {
+                waitForDividendBlock();
             }
+
             resp = fc.createAccount(command);
         }
 
@@ -215,6 +217,12 @@ public class AccountStepDefs {
         }
     }
 
+    private void waitForDividendBlock() {
+        while (!EscUtils.isDividendBlock()) {
+            EscUtils.waitForNextBlock();
+        }
+    }
+
     @Then("^account is created$")
     public void account_is_created() {
         // Sometimes account is created with delay,
@@ -244,14 +252,18 @@ public class AccountStepDefs {
     /**
      * Requests account creation few times with delay.
      *
-     * @param command create account command
+     * @param command         create account command
+     * @param inDividendBlock should account be created in dividend block
      * @return response: json when request was correct, empty otherwise
      */
-    private String requestRemoteAccountCreation(CreateAccountTransaction command) {
+    private String requestRemoteAccountCreation(CreateAccountTransaction command, boolean inDividendBlock) {
         String resp = "";
         int attempt = 0;
         int attemptMax = 6;
         while (attempt++ < attemptMax) {
+            if (inDividendBlock) {
+                waitForDividendBlock();
+            }
 
             resp = FunctionCaller.getInstance().createAccount(command);
             JsonObject o = Utils.convertStringToJsonObject(resp);

@@ -6,9 +6,14 @@ Feature: Account features
     When user creates account
     Then account is created
 
+#  Scenario: Create remote account
+#    Given user, who wants to create account
+#    When user creates remote account
+#    Then account is created
+
   Scenario: Create remote account
     Given user, who wants to create account
-    When user creates remote account
+    When user creates remote account in dividend block
     Then account is created
 
   Scenario: Create account (custom key)

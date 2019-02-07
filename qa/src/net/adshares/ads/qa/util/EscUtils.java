@@ -258,4 +258,15 @@ public class EscUtils {
             e.printStackTrace();
         }
     }
+
+    /**
+     * Checks if current block is dividend block.
+     *
+     * @return true, if current block is dividend, false otherwise
+     */
+    public static boolean isDividendBlock() {
+        long l = System.currentTimeMillis() % (EscConst.BLOCK_DIVIDEND * EscConst.BLOCK_PERIOD_MS);
+
+        return l >= 3 * EscConst.BLOCK_PERIOD_MS;
+    }
 }
