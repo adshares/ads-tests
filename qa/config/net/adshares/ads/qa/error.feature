@@ -3,7 +3,7 @@ Feature: Error features
 
   Scenario Outline: Parsing errors
     Given user, who wants to test errors
-    When user sends <request>
+    When user sends request <request>
     Then error code <errCode> is returned
     Then error "<errDescription>" is returned
 

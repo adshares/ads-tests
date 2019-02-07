@@ -46,7 +46,7 @@ public class ErrorStepDefs {
         userData = UserDataProvider.getInstance().getUserDataList(1).get(0);
     }
 
-    @When("^user sends (.*)$")
+    @When("^user sends request (.*)$")
     public void userSends(String command) {
         FunctionCaller fc = FunctionCaller.getInstance();
         CustomCommand customCommand = new CustomCommand(this.userData, command);
