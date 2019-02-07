@@ -17,4 +17,5 @@ Feature: Function
   Scenario: Check extra data
     Given user, who will check extra_data parameter
     When user call all functions with extra data
-    Then node will work
+    Then no error is present in response
+    And node works

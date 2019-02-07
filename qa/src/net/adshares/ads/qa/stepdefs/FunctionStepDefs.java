@@ -185,15 +185,27 @@ public class FunctionStepDefs {
                 + String.format("echo '{\"run\":\"change_node_key\",\"public_key\":\"%s\", \"extra_data\":\"%s\"}';", nodePublicKey, EscUtils.generateMessage(random.nextInt(MAX_EXTRA_DATA_SIZE_IN_BYTES + 1)))
                 + String.format("echo '{\"run\":\"send_one\",\"address\":\"0001-00000000-XXXX\",\"amount\":\"1\", \"extra_data\":\"%s\"}';", EscUtils.generateMessage(random.nextInt(MAX_EXTRA_DATA_SIZE_IN_BYTES + 1)))
                 + String.format("echo '{\"run\":\"send_many\",\"wires\":{\"0001-00000000-XXXX\":\"1\", \"0002-00000000-XXXX\":\"1\"}, \"extra_data\":\"%s\"}';", EscUtils.generateMessage(random.nextInt(MAX_EXTRA_DATA_SIZE_IN_BYTES + 1)))
+                + String.format("echo '{\"run\":\"set_account_status\",\"address\":\"0001-00000000-XXXX\",\"status\":16, \"extra_data\":\"%s\"}';", EscUtils.generateMessage(random.nextInt(MAX_EXTRA_DATA_SIZE_IN_BYTES + 1)))
+                + String.format("echo '{\"run\":\"unset_account_status\",\"address\":\"0001-00000000-XXXX\",\"status\":16, \"extra_data\":\"%s\"}';", EscUtils.generateMessage(random.nextInt(MAX_EXTRA_DATA_SIZE_IN_BYTES + 1)))
+                + String.format("echo '{\"run\":\"set_node_status\",\"node\":1,\"status\":16, \"extra_data\":\"%s\"}';", EscUtils.generateMessage(random.nextInt(MAX_EXTRA_DATA_SIZE_IN_BYTES + 1)))
+                + String.format("echo '{\"run\":\"unset_node_status\",\"node\":1,\"status\":16, \"extra_data\":\"%s\"}';", EscUtils.generateMessage(random.nextInt(MAX_EXTRA_DATA_SIZE_IN_BYTES + 1)))
                 + "echo '{\"run\":\"get_me\"}')";
 
         CustomCommand customCommand = new CustomCommand(userData, command);
         response = FunctionCaller.getInstance().callCustomCommand(customCommand);
     }
 
-    @Then("^node will work$")
-    public void node_will_work() {
+    @Then("^no error is present in response$")
+    public void no_error_in_response() {
+        assertThat(response, not(containsString("error")));
+    }
 
+    @Then("^node works$")
+    public void node_works() {
+        EscUtils.waitForNextBlock();
+
+        BigDecimal balance = FunctionCaller.getInstance().getUserAccountBalance(userData);
+        assertThat(balance, greaterThan(BigDecimal.ZERO));
     }
 
     /**
