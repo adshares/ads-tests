@@ -46,6 +46,11 @@ Feature: Broadcast message
     When one of them sends many broadcast messages
     Then all of them can read it
 
+  Scenario: Broadcast many ASCII messages
+    Given set of users
+    When one of them sends many broadcast ASCII messages
+    Then all of them can read it
+
   Scenario: Check log
     Given user log
 
