@@ -34,6 +34,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
+import java.util.HashSet;
+import java.util.Set;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
@@ -58,6 +60,13 @@ public class AccountStepDefs {
     private UserData userData;
     private UserData createdUserData;
     private LogEventTimestamp lastEventTimestamp;
+
+    /**
+     * THe current ads allow to create one remote account per node without account's key change.
+     * If the account's key will not be changed, the next account should be created in another node.
+     * This set store all nodes that were used for remote account creation.
+     */
+    private static Set<String> nodeIdsUsedForCreateRemoteAccount = new HashSet<>();
 
     @Given("^user, who wants to change key$")
     public void user_who_wants_to_change_key() {
@@ -162,8 +171,7 @@ public class AccountStepDefs {
             String userNodeId = userData.getNodeId();
             String nodeId = getDifferentNodeId(userData, userNodeId);
             assertThat("Not able to find different node id.", nodeId, notNullValue());
-            // Function create_account takes node parameter in decimal format
-            int node = (nodeId != null) ? Integer.valueOf(nodeId, 16) : 1;
+            int node = Integer.valueOf(nodeId, 16);
             command.setNode(node);
 
             resp = requestRemoteAccountCreation(command, inDividendBlock);
@@ -286,6 +294,7 @@ public class AccountStepDefs {
                 e.printStackTrace();
             }
         }
+
         return resp;
     }
 
@@ -329,10 +338,14 @@ public class AccountStepDefs {
         JsonArray arr = o.getAsJsonObject("block").getAsJsonArray("nodes");
         for (JsonElement je : arr) {
             String tmpNodeId = je.getAsJsonObject().get("id").getAsString();
-            if (!"0000".equals(tmpNodeId) && !nodeId.equals(tmpNodeId)) {
+            if (!"0000".equals(tmpNodeId) && !nodeId.equals(tmpNodeId)
+                    && !nodeIdsUsedForCreateRemoteAccount.contains(tmpNodeId)) {
+                nodeIdsUsedForCreateRemoteAccount.add(tmpNodeId);
+
                 return tmpNodeId;
             }
         }
+
         return null;
     }
 }

@@ -27,10 +27,7 @@ import org.slf4j.LoggerFactory;
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 public class UserDataProvider {
 
@@ -190,42 +187,38 @@ public class UserDataProvider {
 
     /**
      * Makes copy of user data with given address and adds it to list.
+     * Overwrites user data with the same address.
      *
-     * @param userData user data
+     * @param userDataToClone user data
+     * @param address         address of new user data
      */
-    public UserData cloneUser(UserData userData, String address) {
-        if (userData != null && address != null) {
+    public UserData cloneUser(UserData userDataToClone, String address) {
+        if (userDataToClone != null && address != null) {
+            users.removeIf(userData -> address.equals(userData.getAddress()));
 
-            boolean isAddressInList = false;
+            String nodeId = address.substring(0, 4);
             for (UserData user : users) {
-                if (address.equals(user.getAddress())) {
-                    isAddressInList = true;
-                    break;
+                if (nodeId.equals(user.getNodeId())) {
+                    String port = user.getPort();
+                    String host = user.getHost();
+
+                    UserData u = new UserData(port, host, address, userDataToClone.getSecret());
+                    users.add(u);
+
+                    return u;
                 }
             }
-            if (!isAddressInList) {
-                String nodeId = address.substring(0, 4);
-                for (UserData user : users) {
-                    if (nodeId.equals(user.getNodeId())) {
-                        String port = user.getPort();
-                        String host = user.getHost();
 
-                        UserData u = new UserData(port, host, address, userData.getSecret());
-                        users.add(u);
-                        return u;
-                    }
-                }
+            // code below works only for local nodes due to default host (HOST constant)
+            log.trace("Clone user to new node");
+            int node = Integer.valueOf(nodeId, 16);
+            int portAsInt = STARTING_PORT_INT + node - 1;
+            UserData u = new UserData(String.valueOf(portAsInt), HOST, address, userDataToClone.getSecret());
+            users.add(u);
 
-                // code below works only for local nodes due to default host (HOST constant)
-                log.trace("Clone user to new node");
-                int node = Integer.valueOf(nodeId, 16);
-                int portAsInt = STARTING_PORT_INT + node - 1;
-                UserData u = new UserData(String.valueOf(portAsInt), HOST, address, userData.getSecret());
-                users.add(u);
-                return u;
-            }
-
+            return u;
         }
+
         return null;
     }
 

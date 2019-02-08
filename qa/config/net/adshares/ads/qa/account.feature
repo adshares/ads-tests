@@ -6,12 +6,12 @@ Feature: Account features
     When user creates account
     Then account is created
 
-#  Scenario: Create remote account
-#    Given user, who wants to create account
-#    When user creates remote account
-#    Then account is created
-
   Scenario: Create remote account
+    Given user, who wants to create account
+    When user creates remote account
+    Then account is created
+
+  Scenario: Create remote account (dividend block)
     Given user, who wants to create account
     When user creates remote account in dividend block
     Then account is created
@@ -24,6 +24,11 @@ Feature: Account features
   Scenario: Create remote account (custom key)
     Given user, who wants to create account
     When user creates remote account with custom key
+    Then account is created
+
+  Scenario: Create remote account (custom key, dividend block)
+    Given user, who wants to create account
+    When user creates remote account with custom key in dividend block
     Then account is created
 
   Scenario: Change account key
