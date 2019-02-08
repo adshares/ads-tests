@@ -26,6 +26,7 @@ import cucumber.api.java.en.Given;
 import cucumber.api.java.en.Then;
 import cucumber.api.java.en.When;
 import net.adshares.ads.qa.caller.FunctionCaller;
+import net.adshares.ads.qa.caller.command.BroadcastTransaction;
 import net.adshares.ads.qa.data.UserData;
 import net.adshares.ads.qa.data.UserDataProvider;
 import net.adshares.ads.qa.util.*;
@@ -53,30 +54,41 @@ public class BroadcastStepDefs {
         userDataList = UserDataProvider.getInstance().getUserDataList();
     }
 
-    @When("^one of them sends valid broadcast message which size is (\\d+) byte\\(s\\)$")
-    public void one_of_them_sends_broadcast_message(int messageSize) {
+    @When("^one of them sends valid broadcast( ASCII)? message which size is (\\d+) byte\\(s\\)$")
+    public void one_of_them_sends_broadcast_message(String ascii, int messageSize) {
         UserData u = userDataList.get(0);
+        boolean isAscii = ascii != null;
 
-        BroadcastMessageData bmd = sendBroadcastMessageData(u, messageSize);
+        BroadcastMessageData bmd = sendBroadcastMessageData(u, messageSize, isAscii);
         bmdSet = new HashSet<>();
         bmdSet.add(bmd);
     }
 
-    @When("^one of them sends broadcast message which size is (\\d+) bytes$")
-    public void one_of_them_sends_broadcast_message_len(int messageSize) {
+    @When("^one of them sends broadcast( ASCII)? message which size is (\\d+) bytes$")
+    public void one_of_them_sends_broadcast_message_len(String ascii, int messageSize) {
         UserData u = userDataList.get(0);
         FunctionCaller fc = FunctionCaller.getInstance();
-        lastResp = fc.broadcast(u, EscUtils.generateMessage(messageSize));
+        boolean isAscii = ascii != null;
+
+        BroadcastTransaction broadcastTransaction = new BroadcastTransaction(u);
+        if (isAscii) {
+            broadcastTransaction.setAsciiMessage(EscUtils.generateAsciiMessage(messageSize));
+        } else {
+            broadcastTransaction.setHexMessage(EscUtils.generateHexMessage(messageSize));
+        }
+
+        lastResp = fc.broadcast(broadcastTransaction);
     }
 
-    @When("^one of them sends many broadcast messages$")
-    public void one_of_them_send_many_broadcast_messages() {
+    @When("^one of them sends many broadcast( ASCII)? messages$")
+    public void one_of_them_send_many_broadcast_messages(String ascii) {
         UserData u = userDataList.get(0);
+        boolean isAscii = ascii != null;
 
         int messageSize = 1;
         bmdSet = new HashSet<>();
         do {
-            BroadcastMessageData bmd = sendBroadcastMessageData(u, messageSize);
+            BroadcastMessageData bmd = sendBroadcastMessageData(u, messageSize, isAscii);
             bmdSet.add(bmd);
 
             messageSize *= 2;
@@ -88,15 +100,31 @@ public class BroadcastStepDefs {
      *
      * @param userData    user data
      * @param messageSize size of message in bytes
+     * @param isAscii     true if ascii message, false if hexadecimal message
      * @return BroadcastMessageData object
      */
-    private BroadcastMessageData sendBroadcastMessageData(UserData userData, int messageSize) {
+    private BroadcastMessageData sendBroadcastMessageData(UserData userData, int messageSize, boolean isAscii) {
         FunctionCaller fc = FunctionCaller.getInstance();
 
-        String message = EscUtils.generateMessage(messageSize);
-        BigDecimal feeExpected = getBroadcastFee(message);
+        BroadcastTransaction broadcastTransaction = new BroadcastTransaction(userData);
 
-        String resp = fc.broadcast(userData, message);
+        String hexMessage;
+        BigDecimal feeExpected;
+        if (isAscii) {
+            String message = EscUtils.generateAsciiMessage(messageSize);
+            feeExpected = getBroadcastFeeByMessageSizeInBytes(messageSize);
+            hexMessage = convertAsciiToHex(message);
+
+            broadcastTransaction.setAsciiMessage(message);
+        } else {
+            hexMessage = EscUtils.generateHexMessage(messageSize);
+            feeExpected = getBroadcastFeeForHexMessage(hexMessage);
+
+            broadcastTransaction.setHexMessage(hexMessage);
+        }
+
+        String resp = fc.broadcast(broadcastTransaction);
+
         AssertReason.Builder ar = new AssertReason.Builder().msg("Broadcast transaction was not accepted by node.")
                 .req(fc.getLastRequest()).res(fc.getLastResponse());
         assertThat(ar.build(), EscUtils.isTransactionAcceptedByNode(resp));
@@ -108,7 +136,7 @@ public class BroadcastStepDefs {
         String blockTime = Integer.toHexString(blockTimeInt);
         log.debug("block time:  {}", blockTime);
 
-        log.debug("deduct:         {}", deduct.toPlainString());
+        log.debug("deduct:      {}", deduct.toPlainString());
         log.debug("fee:         {}", fee.toPlainString());
         log.debug("feeExpected: {}", feeExpected.toPlainString());
         log.debug("diff:        {}", feeExpected.subtract(fee).toPlainString());
@@ -123,7 +151,18 @@ public class BroadcastStepDefs {
                 .req(fc.getLastRequest()).res(fc.getLastResponse()).build();
         assertThat(reason, fee, comparesEqualTo(feeExpected));
 
-        return new BroadcastMessageData(message, blockTime);
+        return new BroadcastMessageData(hexMessage, blockTime);
+    }
+
+    private String convertAsciiToHex(String message) {
+        if (message == null) {
+            return null;
+        }
+
+        StringBuilder hexMessage = new StringBuilder();
+        message.chars().boxed().forEach(asciiCode -> hexMessage.append(String.format("%02X", asciiCode)));
+
+        return hexMessage.toString();
     }
 
     @Then("^all of them can read it$")
@@ -150,7 +189,8 @@ public class BroadcastStepDefs {
                 BroadcastMessageData bmd = userBmdList.get(0);
 
                 String message = bmd.getMessage();
-                String blockTime = bmd.getBlockTime();
+                String blockTimeStart = bmd.getBlockTime();
+                String blockTime = blockTimeStart;
 
                 boolean isMessageReceived = false;
                 int nextBlockCheckAttempt = 0;
@@ -195,6 +235,10 @@ public class BroadcastStepDefs {
                                             log.debug("got message: {}", receivedMessage);
                                             it.remove();
 
+                                            if (!blockTime.equals(blockTimeStart)) {
+                                                updateMessageBlockTime(otherMessage, blockTime);
+                                            }
+
                                             if (message.equals(receivedMessage)) {
                                                 log.debug("received message");
                                                 isMessageReceived = true;
@@ -228,6 +272,15 @@ public class BroadcastStepDefs {
         }
     }
 
+    private void updateMessageBlockTime(String message, String blockTime) {
+        for (BroadcastMessageData bmd : bmdSet) {
+            if (message.equals(bmd.message)) {
+                bmd.blockTime = blockTime;
+                break;
+            }
+        }
+    }
+
     private void waitForBlock() {
         try {
             Thread.sleep(EscConst.BLOCK_PERIOD_MS);
@@ -258,12 +311,16 @@ public class BroadcastStepDefs {
      * @param message message
      * @return fee for broadcasting message
      */
-    private BigDecimal getBroadcastFee(String message) {
+    private BigDecimal getBroadcastFeeForHexMessage(String message) {
         int len = message.length();
 
         assertThat("Not even length of message. Current length = " + len, len % 2 == 0);
         int sizeBytes = len / 2;
 
+        return getBroadcastFeeByMessageSizeInBytes(sizeBytes);
+    }
+
+    private BigDecimal getBroadcastFeeByMessageSizeInBytes(int sizeBytes) {
         BigDecimal fee = EscConst.MIN_TX_FEE;
         if (sizeBytes > 32) {
             fee = fee.add(EscConst.BROADCAST_FEE_PER_BYTE.multiply(new BigDecimal(sizeBytes - 32)));

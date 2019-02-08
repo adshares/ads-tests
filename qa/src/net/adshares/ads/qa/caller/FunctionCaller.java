@@ -135,17 +135,11 @@ public class FunctionCaller {
     /**
      * Calls broadcast function, which sends message to the network.
      *
-     * @param userData user data
-     * @param message  message as hexadecimal String with even number of characters
+     * @param broadcastTransaction broadcast transaction
      * @return response: json when request was correct, empty otherwise
      */
-    public String broadcast(UserData userData, String message) {
-        log.debug("broadcast");
-        String command = String.format("(echo '{\"run\":\"get_me\"}';echo '{\"run\":\"broadcast\", \"message\":\"%s\"}') | ", message)
-                .concat(clientApp).concat(clientAppOpts).concat(userData.getDataAsEscParams());
-        String output = callFunction(command);
-        output = output.replaceFirst(DOUBLE_RESP_REGEX, "{");
-        return output;
+    public String broadcast(BroadcastTransaction broadcastTransaction) {
+        return sendTransaction(broadcastTransaction);
     }
 
     /**

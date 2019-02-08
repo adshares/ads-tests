@@ -72,16 +72,37 @@ public class EscUtils {
     }
 
     /**
-     * Generates random message.
+     * Generates random ASCII message.
      *
      * @param size size of message in bytes
-     * @return random message, hexadecimal String (without leading '0x', with even number of characters)
+     * @return random message, ASCII String
      */
-    public static String generateMessage(int size) {
+    public static String generateAsciiMessage(int size) {
         Random random = new Random();
         if (size > MESSAGE_SIZE_MAX) {
             size = MESSAGE_SIZE_MAX;
         }
+
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < size; i++) {
+            sb.append((char) (97 + random.nextInt(26)));//a-z
+        }
+
+        return sb.toString();
+    }
+
+    /**
+     * Generates random hexadecimal message.
+     *
+     * @param size size of message in bytes
+     * @return random message, hexadecimal String (without leading '0x', with even number of characters)
+     */
+    public static String generateHexMessage(int size) {
+        Random random = new Random();
+        if (size > MESSAGE_SIZE_MAX) {
+            size = MESSAGE_SIZE_MAX;
+        }
+
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < size; i++) {
             sb.append(String.format("%02X", random.nextInt(256)));

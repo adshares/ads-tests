@@ -151,7 +151,7 @@ public class TransferStepDefs {
 
             SendOneTransaction command = new SendOneTransaction(sender, receiverAddress, txAmount);
             if (withMessage != null) {
-                message = EscUtils.generateMessage(32);
+                message = EscUtils.generateHexMessage(32);
                 command.setMessage(message);
             }
             jsonResp = fc.sendOne(command);
