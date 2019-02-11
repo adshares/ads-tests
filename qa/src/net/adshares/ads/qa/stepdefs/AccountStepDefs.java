@@ -22,14 +22,17 @@ package net.adshares.ads.qa.stepdefs;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import cucumber.api.java.en.And;
 import cucumber.api.java.en.Given;
 import cucumber.api.java.en.Then;
 import cucumber.api.java.en.When;
 import net.adshares.ads.qa.caller.FunctionCaller;
 import net.adshares.ads.qa.caller.command.CreateAccountTransaction;
+import net.adshares.ads.qa.caller.command.GetLogCommand;
 import net.adshares.ads.qa.data.UserData;
 import net.adshares.ads.qa.data.UserDataProvider;
 import net.adshares.ads.qa.util.*;
+import org.junit.Assert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -347,5 +350,50 @@ public class AccountStepDefs {
         }
 
         return null;
+    }
+
+    @Then("^wait until newly created account is marked as deleted$")
+    public void wait_until_account_is_marked_as_deleted() {
+        log.debug("start: " + System.currentTimeMillis());
+
+        FunctionCaller fc = FunctionCaller.getInstance();
+        int attemptMax = 2 * EscConst.BLOCK_DIVIDEND;
+        int attempt = 0;
+
+        boolean isDeleted;
+        do {
+            EscUtils.waitForNextBlock();
+            String resp = fc.getMe(createdUserData);
+            JsonObject o = Utils.convertStringToJsonObject(resp);
+            JsonObject accountObject = o.getAsJsonObject("account");
+            int status = accountObject.get("status").getAsInt();
+
+            isDeleted = (status & 1) != 0;
+        } while (!isDeleted && attempt++ < attemptMax);
+        Assert.assertTrue("Account was not deleted in expected time.", isDeleted);
+
+
+        log.debug("end:   " + System.currentTimeMillis());
+    }
+
+    @And("^checks( full)? log for this account$")
+    public void check_log_of_created_account(String full) {
+        final boolean isFull = full != null;
+        FunctionCaller fc = FunctionCaller.getInstance();
+
+        GetLogCommand getLogCommand = new GetLogCommand(createdUserData);
+        getLogCommand.setType("create_account");
+        if (isFull) {
+            getLogCommand.setFull(true);
+        }
+        String response = fc.getLog(getLogCommand);
+
+        LogChecker lc = new LogChecker(response);
+        JsonArray arr = lc.getLogArray();
+
+        final int expected = isFull ? 2 : 1;
+        String reason = new AssertReason.Builder().msg("Unexpected events in user log.")
+                .req(FunctionCaller.getInstance().getLastRequest()).res(response).build();
+        assertThat(reason, arr.size(), equalTo(expected));
     }
 }

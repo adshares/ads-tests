@@ -255,6 +255,15 @@ public class LogChecker {
     }
 
     /**
+     * Returns array of all log events.
+     *
+     * @return array of all log events
+     */
+    public JsonArray getLogArray() {
+        return getFilteredLogArray(null);
+    }
+
+    /**
      * Compares balance read from account object and computed from log array.
      *
      * @return true if balances are equal, false otherwise

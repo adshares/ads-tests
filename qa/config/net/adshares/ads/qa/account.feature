@@ -5,6 +5,10 @@ Feature: Account features
     Given user, who wants to create account
     When user creates account
     Then account is created
+    Then wait until newly created account is marked as deleted
+    Then user creates account
+    And checks log for this account
+    And checks full log for this account
 
   Scenario: Create remote account
     Given user, who wants to create account

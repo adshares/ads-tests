@@ -467,6 +467,16 @@ public class FunctionCaller {
     /**
      * Calls get_log function for specific user.
      *
+     * @param getLogCommand get_log command
+     * @return response: json when request was correct, empty otherwise
+     */
+    public String getLog(GetLogCommand getLogCommand) {
+        return callCommand(getLogCommand);
+    }
+
+    /**
+     * Calls get_log function for specific user.
+     *
      * @param userData user data
      * @return response: json when request was correct, empty otherwise
      */
@@ -498,9 +508,7 @@ public class FunctionCaller {
     public String getLog(UserData userData, LogEventTimestamp logEventTimeStamp) {
         log.debug("getLog from {}", logEventTimeStamp);
         long timestamp = logEventTimeStamp.getTimestamp();
-        String command = String.format("echo '{\"run\":\"get_log\", \"from\":\"%d\"}' | ", timestamp)
-                .concat(clientApp).concat(clientAppOpts).concat(userData.getDataAsEscParams());
-        String resp = callFunction(command);
+        String resp = getLog(userData, timestamp);
 
         // if eventNum is lesser than 2, no event will be removed
         int eventNum = logEventTimeStamp.getEventNum();
@@ -532,7 +540,6 @@ public class FunctionCaller {
 
                     Gson gson = new GsonBuilder().create();
                     resp = gson.toJson(o);
-
                 }
             }
         }
@@ -818,12 +825,16 @@ public class FunctionCaller {
         return output;
     }
 
-    public String callCustomCommand(CustomCommand customCommand) {
-        log.debug(customCommand.toStringLogger());
-        String command = customCommand.toStringCommand().concat(" | ")
-                .concat(clientApp).concat(clientAppOpts).concat(customCommand.getSenderData().getDataAsEscParams());
+    private String callCommand(AbstractCommand abstractCommand) {
+        log.debug(abstractCommand.toStringLogger());
+        String command = abstractCommand.toStringCommand().concat(" | ")
+                .concat(clientApp).concat(clientAppOpts).concat(abstractCommand.getSenderData().getDataAsEscParams());
 
         return callFunction(command);
+    }
+
+    public String callCustomCommand(CustomCommand customCommand) {
+        return callCommand(customCommand);
     }
 
     /**
