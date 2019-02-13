@@ -205,6 +205,10 @@ public class TransferStepDefs {
                 if (type.matches(REGEX_TRANSFER_TYPE)) {
                     isTransferFound = true;
                 } else {
+                    if (isTransferFound) {
+                        break;
+                    }
+
                     if ("dividend".equals(type)) {
                         additionalEventsAmount = additionalEventsAmount.add(logEntry.get("dividend").getAsBigDecimal());
 
@@ -222,10 +226,6 @@ public class TransferStepDefs {
 
                     } else {
                         Assert.fail(assertReasonBuilder.msg(String.format("Unexpected event type: %s", type)).build());
-                    }
-
-                    if (isTransferFound) {
-                        break;
                     }
                 }
                 ++eventsCount;
