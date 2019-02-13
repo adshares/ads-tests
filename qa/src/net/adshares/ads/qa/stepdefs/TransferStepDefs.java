@@ -31,6 +31,7 @@ import net.adshares.ads.qa.caller.command.SendOneTransaction;
 import net.adshares.ads.qa.data.UserData;
 import net.adshares.ads.qa.data.UserDataProvider;
 import net.adshares.ads.qa.util.*;
+import org.junit.Assert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -123,6 +124,7 @@ public class TransferStepDefs {
         FunctionCaller fc = FunctionCaller.getInstance();
         UserData sender = txSender.getUserData();
         String senderAddress = sender.getAddress();
+        BigDecimal senderBalance = txSender.getStartBalance();
 
         int receiversCount = txReceivers.size();
         // amount to single receiver
@@ -132,9 +134,6 @@ public class TransferStepDefs {
         // transfer fee payed by sender
         BigDecimal fee;
         String jsonResp;
-
-        BigDecimal senderBalance = fc.getUserAccountBalance(txSender);
-        txSender.setStartBalance(senderBalance);
 
         if (receiversCount > 1) {
             // send many
@@ -157,21 +156,45 @@ public class TransferStepDefs {
             jsonResp = fc.sendOne(command);
             fee = getTransferFee(senderAddress, receiverAddress, amount);
         }
+
         boolean isTransactionAccepted = EscUtils.isTransactionAcceptedByNode(jsonResp);
         if (isTransactionAccepted) {
             JsonObject o = Utils.convertStringToJsonObject(jsonResp);
             o = o.getAsJsonObject("account");
             long transferTime = o.get("time").getAsLong();
 
-            o = Utils.convertStringToJsonObject(fc.getLog(sender, transferTime));
-            JsonArray logArr = o.getAsJsonArray("log");
+            BigDecimal additionalEventsAmount = BigDecimal.ZERO;
+            String getLogResponse = fc.getLog(txSender.getUserData(), txSender.getLastEventTimestamp());
+
+            LogChecker logChecker = new LogChecker(getLogResponse);
+            JsonArray logArr = logChecker.getLogArray();
+            final int logArraySize = logArr.size();
+
+            AssertReason.Builder assertReasonBuilder = new AssertReason.Builder()
+                    .req(fc.getLastRequest()).res(fc.getLastResponse());
+
+            if (logArraySize <= 0) {
+                Assert.fail(assertReasonBuilder.msg("Missing events in log.").build());
+            }
+
+            LogFilter transferLogFilter = new LogFilter(true);
+            transferLogFilter.addFilter("type", REGEX_TRANSFER_TYPE);
+            final int numberOfTransfersInLog = logChecker.getFilteredLogArray(transferLogFilter).size();
+            if (numberOfTransfersInLog < receiversCount) {
+                Assert.fail(assertReasonBuilder.msg("Missing transfers in log.").build());
+            }
+            if (numberOfTransfersInLog > receiversCount) {
+                Assert.fail(assertReasonBuilder.msg("Too many transfers in log.").build());
+            }
 
             // look for transfer events, all
             boolean isTransferFound = false;
             int eventsCount = 0;
+            int node = sender.getNode();
             for (JsonElement je : logArr) {
-                String type = je.getAsJsonObject().get("type").getAsString();
-                long transferTimeLog = je.getAsJsonObject().get("time").getAsLong();
+                final JsonObject logEntry = je.getAsJsonObject();
+                String type = logEntry.get("type").getAsString();
+                long transferTimeLog = logEntry.get("time").getAsLong();
                 if (transferTime != transferTimeLog) {
                     // very rarely time of transfer event in log is different than returned in transfer response
                     // it this case transferTime must be updated as well as eventsCount
@@ -182,6 +205,25 @@ public class TransferStepDefs {
                 if (type.matches(REGEX_TRANSFER_TYPE)) {
                     isTransferFound = true;
                 } else {
+                    if ("dividend".equals(type)) {
+                        additionalEventsAmount = additionalEventsAmount.add(logEntry.get("dividend").getAsBigDecimal());
+
+                    } else if ("bank_profit".equals(type)) {// type_no == 32785
+                        if (logEntry.has("node") && logEntry.get("node").getAsInt() != node) {
+                            log.debug("bank profit for different node");
+                        } else {
+                            final BigDecimal logEntryProfit = logEntry.get("profit").getAsBigDecimal();
+                            additionalEventsAmount = additionalEventsAmount.add(logEntryProfit);
+                            if (logEntry.has("fee")) {
+                                BigDecimal logEntryFee = logEntry.get("fee").getAsBigDecimal();
+                                additionalEventsAmount = additionalEventsAmount.subtract(logEntryFee);
+                            }
+                        }
+
+                    } else {
+                        Assert.fail(assertReasonBuilder.msg(String.format("Unexpected event type: %s", type)).build());
+                    }
+
                     if (isTransferFound) {
                         break;
                     }
@@ -189,10 +231,15 @@ public class TransferStepDefs {
                 ++eventsCount;
             }
 
+            if (additionalEventsAmount.compareTo(BigDecimal.ZERO) > 0) {
+                log.debug("Additional events amount {}", additionalEventsAmount.toPlainString());
+                senderBalance = senderBalance.add(additionalEventsAmount);
+                txSender.setStartBalance(senderBalance);
+            }
+
             LogEventTimestamp lastEventTimestamp = new LogEventTimestamp(transferTime, eventsCount);
             txSender.setLastEventTimestamp(lastEventTimestamp.incrementEventNum());
         }
-
 
         BigDecimal tmpSenderExpBalance = senderBalance.subtract(amountOut).subtract(fee);
         BigDecimal minAccountBalance = sender.getMinAllowedBalance();
@@ -241,7 +288,6 @@ public class TransferStepDefs {
             }
             txSender.setExpBalance(senderBalance);
         }
-
     }
 
     @When("^sender sends all to receiver \\(fee is(.*)included\\)$")
