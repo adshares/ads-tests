@@ -161,84 +161,17 @@ public class TransferStepDefs {
         boolean isTransactionAccepted = EscUtils.isTransactionAcceptedByNode(jsonResp);
         if (isTransactionAccepted) {
             JsonObject o = Utils.convertStringToJsonObject(jsonResp);
-            o = o.getAsJsonObject("account");
-            long transferTime = o.get("time").getAsLong();
+            long transferTime = o.getAsJsonObject("account").get("time").getAsLong();
 
-            BigDecimal additionalEventsAmount = BigDecimal.ZERO;
-            String getLogResponse = fc.getLog(txSender.getUserData(), txSender.getLastEventTimestamp());
+            BigDecimal eventsAmount = getTotalAmountOfEventsBeforeTransfer(receiversCount);
 
-            LogChecker logChecker = new LogChecker(getLogResponse);
-            JsonArray logArr = logChecker.getLogArray();
-            final int logArraySize = logArr.size();
-
-            AssertReason.Builder assertReasonBuilder = new AssertReason.Builder()
-                    .req(fc.getLastRequest()).res(fc.getLastResponse());
-
-            if (logArraySize <= 0) {
-                Assert.fail(assertReasonBuilder.msg("Missing events in log.").build());
-            }
-
-            LogFilter transferLogFilter = new LogFilter(true);
-            transferLogFilter.addFilter("type", REGEX_TRANSFER_TYPE);
-            final int numberOfTransfersInLog = logChecker.getFilteredLogArray(transferLogFilter).size();
-            if (numberOfTransfersInLog < receiversCount) {
-                Assert.fail(assertReasonBuilder.msg("Missing transfers in log.").build());
-            }
-            if (numberOfTransfersInLog > receiversCount) {
-                Assert.fail(assertReasonBuilder.msg("Too many transfers in log.").build());
-            }
-
-            // look for transfer events, all
-            boolean isTransferFound = false;
-            int eventsCount = 0;
-            int node = sender.getNode();
-            for (JsonElement je : logArr) {
-                final JsonObject logEntry = je.getAsJsonObject();
-                String type = logEntry.get("type").getAsString();
-                long transferTimeLog = logEntry.get("time").getAsLong();
-                if (transferTime != transferTimeLog) {
-                    // very rarely time of transfer event in log is different than returned in transfer response
-                    // it this case transferTime must be updated as well as eventsCount
-                    transferTime = transferTimeLog;
-                    eventsCount = 0;
-                }
-
-                if (type.matches(REGEX_TRANSFER_TYPE)) {
-                    isTransferFound = true;
-                } else {
-                    if (isTransferFound) {
-                        break;
-                    }
-
-                    if ("dividend".equals(type)) {
-                        additionalEventsAmount = additionalEventsAmount.add(logEntry.get("dividend").getAsBigDecimal());
-
-                    } else if ("bank_profit".equals(type)) {// type_no == 32785
-                        if (logEntry.has("node") && logEntry.get("node").getAsInt() != node) {
-                            log.debug("bank profit for different node");
-                        } else {
-                            final BigDecimal logEntryProfit = logEntry.get("profit").getAsBigDecimal();
-                            additionalEventsAmount = additionalEventsAmount.add(logEntryProfit);
-                            if (logEntry.has("fee")) {
-                                BigDecimal logEntryFee = logEntry.get("fee").getAsBigDecimal();
-                                additionalEventsAmount = additionalEventsAmount.subtract(logEntryFee);
-                            }
-                        }
-
-                    } else {
-                        Assert.fail(assertReasonBuilder.msg(String.format("Unexpected event type: %s", type)).build());
-                    }
-                }
-                ++eventsCount;
-            }
-
-            if (additionalEventsAmount.compareTo(BigDecimal.ZERO) > 0) {
-                log.debug("Additional events amount {}", additionalEventsAmount.toPlainString());
-                senderBalance = senderBalance.add(additionalEventsAmount);
+            if (eventsAmount.compareTo(BigDecimal.ZERO) > 0) {
+                log.debug("Additional events amount {}", eventsAmount.toPlainString());
+                senderBalance = senderBalance.add(eventsAmount);
                 txSender.setStartBalance(senderBalance);
             }
 
-            LogEventTimestamp lastEventTimestamp = new LogEventTimestamp(transferTime, eventsCount);
+            LogEventTimestamp lastEventTimestamp = getLastTransferEventTimestamp(sender, transferTime);
             txSender.setLastEventTimestamp(lastEventTimestamp.incrementEventNum());
         }
 
@@ -289,6 +222,102 @@ public class TransferStepDefs {
             }
             txSender.setExpBalance(senderBalance);
         }
+    }
+
+    private BigDecimal getTotalAmountOfEventsBeforeTransfer(int receiversCount) {
+        BigDecimal additionalEventsAmount = BigDecimal.ZERO;
+        FunctionCaller fc = FunctionCaller.getInstance();
+
+        String getLogResponse = fc.getLog(txSender.getUserData(), txSender.getLastEventTimestamp());
+
+        LogChecker logChecker = new LogChecker(getLogResponse);
+        JsonArray logArray = logChecker.getLogArray();
+        final int logArraySize = logArray.size();
+
+        AssertReason.Builder assertReasonBuilder = new AssertReason.Builder()
+                .req(fc.getLastRequest()).res(fc.getLastResponse());
+
+        if (logArraySize <= 0) {
+            Assert.fail(assertReasonBuilder.msg("Missing events in log.").build());
+        }
+
+        LogFilter transferLogFilter = new LogFilter(true);
+        transferLogFilter.addFilter("type", REGEX_TRANSFER_TYPE);
+        final int numberOfTransfersInLog = logChecker.getFilteredLogArray(transferLogFilter).size();
+        if (numberOfTransfersInLog < receiversCount) {
+            Assert.fail(assertReasonBuilder.msg("Missing transfers in log.").build());
+        }
+        if (numberOfTransfersInLog > receiversCount) {
+            Assert.fail(assertReasonBuilder.msg("Too many transfers in log.").build());
+        }
+
+        // look for transfer events, all
+        boolean isTransferFound = false;
+        int node = txSender.getUserData().getNode();
+        for (JsonElement je : logArray) {
+            final JsonObject logEntry = je.getAsJsonObject();
+            String type = logEntry.get("type").getAsString();
+
+            if (type.matches(REGEX_TRANSFER_TYPE)) {
+                isTransferFound = true;
+            } else {
+                if (isTransferFound) {
+                    break;
+                }
+
+                if ("dividend".equals(type)) {
+                    additionalEventsAmount = additionalEventsAmount.add(logEntry.get("dividend").getAsBigDecimal());
+
+                } else if ("bank_profit".equals(type)) {// type_no == 32785
+                    if (logEntry.has("node") && logEntry.get("node").getAsInt() != node) {
+                        log.debug("bank profit for different node");
+                    } else {
+                        final BigDecimal logEntryProfit = logEntry.get("profit").getAsBigDecimal();
+                        additionalEventsAmount = additionalEventsAmount.add(logEntryProfit);
+                        if (logEntry.has("fee")) {
+                            final BigDecimal logEntryFee = logEntry.get("fee").getAsBigDecimal();
+                            additionalEventsAmount = additionalEventsAmount.subtract(logEntryFee);
+                        }
+                    }
+                } else {
+                    Assert.fail(assertReasonBuilder.msg(String.format("Unexpected event type: %s", type)).build());
+                }
+            }
+        }
+
+        return additionalEventsAmount;
+    }
+
+    private LogEventTimestamp getLastTransferEventTimestamp(UserData sender, long transferTime) {
+        String getLogResponse = FunctionCaller.getInstance().getLog(sender, transferTime);
+        LogChecker logChecker = new LogChecker(getLogResponse);
+        JsonArray logArray = logChecker.getLogArray();
+
+        // look for transfer events, all
+        boolean isTransferFound = false;
+        int eventsCount = 0;
+        for (JsonElement je : logArray) {
+            final JsonObject logEntry = je.getAsJsonObject();
+            String type = logEntry.get("type").getAsString();
+            long transferTimeLog = logEntry.get("time").getAsLong();
+            if (transferTime != transferTimeLog) {
+                // very rarely time of transfer event in log is different than returned in transfer response
+                // it this case transferTime must be updated as well as eventsCount
+                transferTime = transferTimeLog;
+                eventsCount = 0;
+            }
+
+            if (type.matches(REGEX_TRANSFER_TYPE)) {
+                isTransferFound = true;
+            } else {
+                if (isTransferFound) {
+                    break;
+                }
+            }
+            ++eventsCount;
+        }
+
+        return new LogEventTimestamp(transferTime, eventsCount);
     }
 
     @When("^sender sends all to receiver \\(fee is(.*)included\\)$")
