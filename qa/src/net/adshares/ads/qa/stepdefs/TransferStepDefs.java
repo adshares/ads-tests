@@ -441,7 +441,9 @@ public class TransferStepDefs {
                 .msg("Sender " + txSender.getUserData().getAddress());
 
         if (isChangeExpected) {
-            assertThat(ar.msg("Sender balance unchanged.").build(), balance, not(comparesEqualTo(txSender.getStartBalance())));
+            if (balance.compareTo(txSender.getStartBalance()) == 0) {
+                Assert.fail(ar.msg("Sender balance unchanged.").build());
+            }
         }
         assertThat(ar.msg("Sender balance unexpected.").build(), balance, comparesEqualTo(senderExpBalance));
     }
