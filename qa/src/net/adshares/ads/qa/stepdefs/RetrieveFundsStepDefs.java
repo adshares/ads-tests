@@ -32,6 +32,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -233,10 +234,10 @@ public class RetrieveFundsStepDefs {
                     BigDecimal senderBalance = o.get("sender_balance").getAsBigDecimal();
                     assertThat("Retriever has different amount than was retrieved from inactive account.",
                             senderBalance, comparesEqualTo(retrievedAmount));
-                    BigDecimal senderFeeExpected = senderBalance.multiply(EscConst.RETRIEVE_FEE).setScale(11, BigDecimal.ROUND_FLOOR);
+                    BigDecimal senderFeeExpected = senderBalance.multiply(EscConst.RETRIEVE_FEE).setScale(11, RoundingMode.FLOOR);
                     log.debug("senderFeeExpected1: {}", senderFeeExpected.toPlainString());
                     BigDecimal additionalRemoteFee = senderBalance.subtract(senderFeeExpected)
-                            .multiply(EscConst.REMOTE_TX_FEE_COEFFICIENT).setScale(11, BigDecimal.ROUND_FLOOR);
+                            .multiply(EscConst.REMOTE_TX_FEE_COEFFICIENT).setScale(11, RoundingMode.FLOOR);
                     senderFeeExpected = senderFeeExpected.add(additionalRemoteFee);
                     log.debug("senderFee:          {}", senderFee.toPlainString());
                     log.debug("senderFeeExpected2: {}", senderFeeExpected.toPlainString());

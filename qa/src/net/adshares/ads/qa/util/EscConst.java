@@ -20,6 +20,7 @@
 package net.adshares.ads.qa.util;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 /**
  * ESC constants from default.hpp
@@ -140,9 +141,9 @@ public class EscConst {
      */
     public static BigDecimal getSharedProfitForTopVip(BigDecimal profit) {
         return profit
-                .divide(new BigDecimal(5), 11, BigDecimal.ROUND_FLOOR)
+                .divide(new BigDecimal(5), 11, RoundingMode.FLOOR)
                 .multiply(new BigDecimal(2))
-                .setScale(11, BigDecimal.ROUND_FLOOR);
+                .setScale(11, RoundingMode.FLOOR);
     }
 
     /**

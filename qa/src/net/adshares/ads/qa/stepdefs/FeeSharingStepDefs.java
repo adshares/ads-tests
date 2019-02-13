@@ -35,6 +35,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -234,7 +235,7 @@ public class FeeSharingStepDefs {
         }
         int shareCount = topList.size() + vipList.size();
         log.debug("totalProfitToShare: {}", totalProfitToShare.toPlainString());
-        BigDecimal sharePerUser = totalProfitToShare.divide(new BigDecimal(shareCount), 11, BigDecimal.ROUND_FLOOR);
+        BigDecimal sharePerUser = totalProfitToShare.divide(new BigDecimal(shareCount), 11, RoundingMode.FLOOR);
         log.debug("sharePerUser1     : {}", sharePerUser.toPlainString());
         sharePerUser = EscConst.getSharedProfitForTopVip(sharePerUser);
         log.debug("sharePerUser2     : {}", sharePerUser.toPlainString());

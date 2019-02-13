@@ -36,6 +36,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -128,9 +129,9 @@ public class TransferStepDefs {
 
         int receiversCount = txReceivers.size();
         // amount to single receiver
-        BigDecimal amount = new BigDecimal(txAmount).setScale(11, BigDecimal.ROUND_FLOOR);
+        BigDecimal amount = new BigDecimal(txAmount).setScale(11, RoundingMode.FLOOR);
         // amount from sender to all receivers
-        BigDecimal amountOut = amount.multiply(new BigDecimal(receiversCount)).setScale(11, BigDecimal.ROUND_FLOOR);
+        BigDecimal amountOut = amount.multiply(new BigDecimal(receiversCount)).setScale(11, RoundingMode.FLOOR);
         // transfer fee payed by sender
         BigDecimal fee;
         String jsonResp;
@@ -313,7 +314,7 @@ public class TransferStepDefs {
             } else {
                 feeCoefficient = BigDecimal.ONE.add(EscConst.LOCAL_TX_FEE_COEFFICIENT).add(EscConst.REMOTE_TX_FEE_COEFFICIENT);
             }
-            BigDecimal txAmount = availableAmount.divide(feeCoefficient, 11, BigDecimal.ROUND_FLOOR);
+            BigDecimal txAmount = availableAmount.divide(feeCoefficient, 11, RoundingMode.FLOOR);
 
             // increase transfer amount and check if it can be done
             BigDecimal expBalance;
@@ -571,7 +572,7 @@ public class TransferStepDefs {
         Each wire amount is less than balance (0.6 of balance), but sum of wires exceeds balance.
          */
         BigDecimal balance = txSender.getStartBalance();
-        BigDecimal amount = balance.multiply(new BigDecimal("0.6")).setScale(11, BigDecimal.ROUND_FLOOR);
+        BigDecimal amount = balance.multiply(new BigDecimal("0.6")).setScale(11, RoundingMode.FLOOR);
         String amountAsString = amount.toPlainString();
 
         Map<String, String> map = new HashMap<>(txReceivers.size());
@@ -652,14 +653,14 @@ public class TransferStepDefs {
             BigDecimal localFee = amount.multiply(
                     (receiverCount == 1) ? EscConst.LOCAL_TX_FEE_COEFFICIENT : EscConst.MULTI_TX_FEE_COEFFICIENT);
             // fee scale must be set, because multiply extends scale
-            localFee = localFee.setScale(11, BigDecimal.ROUND_FLOOR);
+            localFee = localFee.setScale(11, RoundingMode.FLOOR);
             summaryFee = summaryFee.add(localFee);
 
             if (!UserData.isAccountFromSameNode(senderAddress, receiverAddress)) {
                 // users in different nodes
                 BigDecimal remoteFee = amount.multiply(EscConst.REMOTE_TX_FEE_COEFFICIENT);
                 // fee scale must be set, because multiply extends scale
-                remoteFee = remoteFee.setScale(11, BigDecimal.ROUND_FLOOR);
+                remoteFee = remoteFee.setScale(11, RoundingMode.FLOOR);
                 summaryFee = summaryFee.add(remoteFee);
             }
         }
