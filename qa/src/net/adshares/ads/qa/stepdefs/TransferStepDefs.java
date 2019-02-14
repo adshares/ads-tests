@@ -165,7 +165,7 @@ public class TransferStepDefs {
 
             BigDecimal eventsAmount = getTotalAmountOfEventsBeforeTransfer(receiversCount);
 
-            if (eventsAmount.compareTo(BigDecimal.ZERO) > 0) {
+            if (eventsAmount.compareTo(BigDecimal.ZERO) != 0) {
                 log.debug("Additional events amount {}", eventsAmount.toPlainString());
                 senderBalance = senderBalance.add(eventsAmount);
                 txSender.setStartBalance(senderBalance);
