@@ -168,7 +168,7 @@ def investigate_node(nconf):
         print(e)
         return False
 
-    output = '[' + output.replace("}\n{", "},\n{") + ']'
+    output = '[' + str(output).replace("}\n{", "},\n{") + ']'
     json_out = json.loads(output)
 
     for json_msg in json_out:
@@ -203,7 +203,7 @@ def investigate(uconf_path, silent=False):
         print(e)
         return False
 
-    json_out = json.loads(output)
+    json_out = json.loads(str(output))
 
     try:
         last_block_id, last_block_hash = json_out['block']['id'], json_out['block']['nowhash']
