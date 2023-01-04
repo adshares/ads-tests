@@ -63,6 +63,12 @@ def start_node(nconf_path, genesis_time, init=False):
             f.write(str(proc.pid))
 
         print("Process started: ", time.strftime("%Z - %Y/%m/%d, %H:%M:%S", time.localtime(time.time())))
+
+        #TODO
+        with open(os.path.join(nconf_path, '{0}.log'.format(node_name)), 'r') as log:
+            print(f.readLines())
+        with open(os.path.join(nconf_path, '{0}.error.log'.format(node_name)), 'r') as log:
+            print(f.readLines())
     except OSError:
         print("Server not started.")
         sys.exit(1)
@@ -160,6 +166,7 @@ def investigate_node(nconf):
     try:
         cmd = 'echo \'{"run":"get_me"}\''
         cmd += ' | {0} --work-dir=. --secret=123 -P{1} -H{2}'.format(CLIENT_BIN_NAME, options[0], options[1])
+        print(cmd)
 
         with open(os.devnull, 'w') as devnull:
             output = subprocess.check_output(cmd, stderr=devnull, shell=True)
