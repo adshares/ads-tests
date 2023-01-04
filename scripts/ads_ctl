@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from __future__ import print_function
+
 import os
 import subprocess
 from glob import glob
@@ -169,10 +169,11 @@ def investigate_node(nconf):
         return False
 
     output = '[' + str(output).replace("}\n{", "},\n{") + ']'
+    print(output)
     json_out = json.loads(output)
 
     for json_msg in json_out:
-        if 'current_block_time' and 'previous_block_time' in json_msg.keys():
+        if 'current_block_time' and 'previous_block_time' in list(json_msg.keys()):
             return True
 
     return False

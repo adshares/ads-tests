@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from __future__ import print_function
+
 import argparse
 import json
 import getpass
@@ -10,11 +10,7 @@ import subprocess
 import sys
 from copy import copy
 from os.path import expanduser
-
-try:
-    from urllib2 import urlopen
-except ImportError:
-    from urllib.request import urlopen
+from urllib.request import urlopen
 
 
 def save_config(filepath, settings):
@@ -210,7 +206,7 @@ class GenesisFile(object):
                 return addr[:4]
 
     def node_identifier_from_public_key(self, pub_key):
-        for node_id in self.nodes.keys():
+        for node_id in list(self.nodes.keys()):
             if self.nodes[node_id]['public_key'] == pub_key:
                 return node_id
 
