@@ -66,9 +66,13 @@ def start_node(nconf_path, genesis_time, init=False):
 
         #TODO
         with open(os.path.join(nconf_path, '{0}.log'.format(node_name)), 'r') as log:
+            print('log')
+            print('{0}.log'.format(node_name))
             for line in log:
                 print(line)
         with open(os.path.join(nconf_path, '{0}.error.log'.format(node_name)), 'r') as log:
+            print('error log')
+            print('{0}.error.log'.format(node_name))
             for line in log:
                 print(line)
     except OSError:
