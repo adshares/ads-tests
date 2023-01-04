@@ -10,7 +10,6 @@ import time
 import signal
 import sys
 import hashlib
-import psutil
 from os.path import expanduser
 
 
@@ -94,38 +93,6 @@ def stop_node(nconf_path):
 
     except IOError:
         print("Pid file not found")
-
-
-def stop_all():
-    """
-    Kill all process matching the daemon binary name.
-    From: https://stackoverflow.com/a/2241047
-
-    :return:
-    """
-
-    name = DAEMON_BIN_NAME
-
-    for p in psutil.process_iter():
-        name_, exe, cmdline = "", "", []
-        try:
-            name_ = p.name()
-            cmdline = p.cmdline()
-            exe = p.exe()
-        except (psutil.AccessDenied, psutil.ZombieProcess):
-            pass
-        except psutil.NoSuchProcess:
-            continue
-        if name == name_ or (cmdline and './{0}'.format(name) in cmdline) or os.path.basename(exe) == name:
-            print("Found process {0}: ".format(p.pid))
-            print(name_, cmdline, exe)
-
-            try:
-                os.kill(p.pid, signal.SIGKILL)
-                print("Killed process {0}".format(p.pid))
-            except OSError:
-                print("Process {0} not killed".format(p.pid))
-                sys.exit(1)
 
 
 def state(nconf_path):
@@ -307,7 +274,6 @@ def stop_action(data_dir):
     for nconf in sorted(glob(data_dir + '/node*')):
         print(nconf)
         stop_node(nconf)
-    stop_all()
 
 
 def nodes_action(data_dir):
