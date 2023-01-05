@@ -63,18 +63,6 @@ def start_node(nconf_path, genesis_time, init=False):
             f.write(str(proc.pid))
 
         print("Process started: ", time.strftime("%Z - %Y/%m/%d, %H:%M:%S", time.localtime(time.time())))
-
-        #TODO
-        with open(os.path.join(nconf_path, '{0}.log'.format(node_name)), 'r') as log:
-            print('log')
-            print('{0}.log'.format(node_name))
-            for line in log:
-                print(line)
-        with open(os.path.join(nconf_path, '{0}.error.log'.format(node_name)), 'r') as log:
-            print('error log')
-            print('{0}.error.log'.format(node_name))
-            for line in log:
-                print(line)
     except OSError:
         print("Server not started.")
         sys.exit(1)
@@ -280,7 +268,7 @@ def start_action(data_dir, debug=False, init=False):
     block_time = 512
     if debug:
         block_time = 32
-    genesis_time = (int(time.time() + 8) / block_time) * block_time
+    genesis_time = (int(time.time() / block_time) + 1) * block_time
     print("Genesis start time: ", time.strftime("%Z - %Y/%m/%d, %H:%M:%S", time.localtime(float(genesis_time))))
 
     for nconf in sorted(glob(data_dir + '/node*')):
