@@ -160,7 +160,6 @@ def investigate_node(nconf):
     try:
         cmd = 'echo \'{"run":"get_me"}\''
         cmd += ' | {0} --work-dir=. --secret=123 -P{1} -H{2}'.format(CLIENT_BIN_NAME, options[0], options[1])
-        print(cmd)
 
         with open(os.devnull, 'w') as devnull:
             output = subprocess.check_output(cmd, stderr=devnull, shell=True)
@@ -170,22 +169,11 @@ def investigate_node(nconf):
         return False
 
     output = '[' + output.decode('utf-8').replace("}\n{", "},\n{") + ']'
-    #TODO debug print
-    print(output)
     json_out = json.loads(output)
 
     for json_msg in json_out:
         if 'current_block_time' and 'previous_block_time' in list(json_msg.keys()):
             return True
-
-    try:
-        with open(os.devnull, 'w') as devnull:
-            output = subprocess.check_output('ss -tnlp', stderr=devnull, shell=True)
-    except subprocess.CalledProcessError as e:
-        print(e)
-        return False
-    print(output.decode('utf-8'))
-
 
     return False
 
