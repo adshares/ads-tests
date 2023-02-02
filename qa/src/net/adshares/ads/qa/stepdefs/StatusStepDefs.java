@@ -262,7 +262,6 @@ public class StatusStepDefs {
         successfullyChangedBitsSet = new HashSet<>();
 
         // This delay was added in case of error with vip node status change
-        // TODO check, if it solves the problem with tests on Travis
         try {
             Thread.sleep(EscConst.BLOCK_PERIOD_MS);
         } catch (InterruptedException e) {
