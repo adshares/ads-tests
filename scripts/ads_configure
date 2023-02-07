@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from __future__ import print_function
+
 import argparse
 import json
 import getpass
@@ -10,11 +10,7 @@ import subprocess
 import sys
 from copy import copy
 from os.path import expanduser
-
-try:
-    from urllib2 import urlopen
-except ImportError:
-    from urllib.request import urlopen
+from urllib.request import urlopen
 
 
 def save_config(filepath, settings):
@@ -56,7 +52,7 @@ class AccountConfig(object):
         """
         self.id = identifier
 
-        self.port = 6511
+        self.port = 9001
         self.node_addr = loc_env['node_interface']
         self.address = None
         self.private_key = None
@@ -96,8 +92,8 @@ class NodeConfig(object):
         :param loc_env: Local node environment (ip, node identifier, etc.)
         """
         self.svid = 0
-        self.port = 6510
-        self.offi = 6511
+        self.port = 8001
+        self.offi = 9001
         self.addr = loc_env['node_interface']
 
         self.accounts = []
@@ -210,7 +206,7 @@ class GenesisFile(object):
                 return addr[:4]
 
     def node_identifier_from_public_key(self, pub_key):
-        for node_id in self.nodes.keys():
+        for node_id in list(self.nodes.keys()):
             if self.nodes[node_id]['public_key'] == pub_key:
                 return node_id
 
@@ -339,6 +335,10 @@ def configure(config):
         print("No nodes to configure.")
         sys.exit(1)
 
+    if min(config.port, config.client_port) + len(nodes_to_process) > max(config.port, config.client_port):
+        print("Port overwrite. Set valid ports")
+        sys.exit(1)
+
     local_env = {'data_dir': config.data_dir, 'node_interface': config.interface}
     port_offset = 0
     local_peers = []
@@ -348,8 +348,8 @@ def configure(config):
         nconf = NodeConfig(local_env)
 
         nconf.svid = node['_nid']
-        nconf.port = config.port + port_offset      # default port: 6510
-        nconf.offi = config.client_port + port_offset  # default port: 6511
+        nconf.port = config.port + port_offset
+        nconf.offi = config.client_port + port_offset
         nconf.peers = copy(local_peers)
 
         # Add yourself as peer
@@ -374,7 +374,7 @@ def configure(config):
                 aconf.save()
                 break
 
-        port_offset += 2
+        port_offset += 1
 
 
 if __name__ == '__main__':
@@ -392,8 +392,8 @@ if __name__ == '__main__':
     parser.add_argument('--data-dir', default='{0}/.adsd'.format(expanduser('~')), help='Writeable working directory.')
     parser.add_argument('--interface', default=get_my_ip(), help='Interface this node is bound to.')
     parser.add_argument('--user-dirs', action='store_true', help='Create account directories.')
-    parser.add_argument('--port', default=6510, type=int, help='Node port')
-    parser.add_argument('--client-port', default=6511, type=int, help='Node port')
+    parser.add_argument('--port', default=8001, type=int, help='Node port for peers')
+    parser.add_argument('--client-port', default=9001, type=int, help='Node port for clients')
 
     args = parser.parse_args()
 

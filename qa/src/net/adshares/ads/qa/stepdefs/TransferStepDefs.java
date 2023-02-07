@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Adshares sp. z. o.o.
+ * Copyright (C) 2018-2023 Adshares sp. z. o.o.
  *
  * This file is part of ADS Tests
  *
@@ -30,6 +30,7 @@ import net.adshares.ads.qa.caller.command.SendManyTransaction;
 import net.adshares.ads.qa.caller.command.SendOneTransaction;
 import net.adshares.ads.qa.data.UserData;
 import net.adshares.ads.qa.data.UserDataProvider;
+import net.adshares.ads.qa.stepdefs.exception.TransferBlockedDueToUpcomingDormantFeeException;
 import net.adshares.ads.qa.util.*;
 import org.junit.Assert;
 import org.slf4j.Logger;
@@ -48,6 +49,13 @@ import static org.hamcrest.Matchers.*;
 public class TransferStepDefs {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
+    private static final String ERROR_TOO_LOW_BALANCE = "Too low balance";
+    private static final String FIELD_ERROR = "error";
+    private static final String FIELD_ERROR_INFO = "error_info";
+    /**
+     * Regular expression for error message which explains transaction blocked due to upcoming dormant fee
+     */
+    private static final String REGEX_ERROR_DORMANT_FEE = "Available balance reduced to \\d+\\.\\d+ for upcoming dormant fee. Issue cheaper tx first.";
     /**
      * Regexp for transfer event in log
      */
@@ -121,7 +129,7 @@ public class TransferStepDefs {
     }
 
     @When("^sender sends ([-]?\\d+(\\.\\d+)?) ADS to receiver[s]?( with message)?$")
-    public void send_ads(String txAmount, String decimalPart, String withMessage) {
+    public void send_ads(String txAmount, String decimalPart, String withMessage) throws TransferBlockedDueToUpcomingDormantFeeException {
         FunctionCaller fc = FunctionCaller.getInstance();
         UserData sender = txSender.getUserData();
         String senderAddress = sender.getAddress();
@@ -155,6 +163,15 @@ public class TransferStepDefs {
                 command.setMessage(message);
             }
             jsonResp = fc.sendOne(command);
+
+            JsonObject jsonObject = Utils.convertStringToJsonObject(jsonResp);
+            if (jsonObject.has(FIELD_ERROR)
+                    && jsonObject.has(FIELD_ERROR_INFO)
+                    && ERROR_TOO_LOW_BALANCE.equals(jsonObject.get(FIELD_ERROR).getAsString())
+                    && jsonObject.get(FIELD_ERROR_INFO).getAsString().matches(REGEX_ERROR_DORMANT_FEE)
+            ) {
+                throw new TransferBlockedDueToUpcomingDormantFeeException();
+            }
             fee = getTransferFee(senderAddress, receiverAddress, amount);
         }
 
@@ -324,7 +341,11 @@ public class TransferStepDefs {
     public void send_all(String included) {
         if ("not".equals(included.trim())) {
             // when fee is not included transfer will not be successful
-            send_ads(txSender.getStartBalance().toString(), null, null);
+            try {
+                send_ads(txSender.getStartBalance().toString(), null, null);
+            } catch (TransferBlockedDueToUpcomingDormantFeeException e) {
+                log.error("Transaction blocked due to upcoming dormant fee");
+            }
         } else {
             UserData sender = txSender.getUserData();
             String senderAddress = sender.getAddress();
@@ -334,31 +355,50 @@ public class TransferStepDefs {
             BigDecimal minAccountBalance = sender.getMinAllowedBalance();
             // subtraction, because after transfer balance cannot be lesser than minimal allowed
             BigDecimal availableAmount = txSender.getStartBalance().subtract(minAccountBalance);
+            BigDecimal txAmount = getMaximalTxAmount(senderAddress, receiverAddress, availableAmount);
 
-            // calculate approx value of maximal transfer amount
-            BigDecimal feeCoefficient;
-            // check if same node
-            if (UserData.isAccountFromSameNode(senderAddress, receiverAddress)) {
-                feeCoefficient = BigDecimal.ONE.add(EscConst.LOCAL_TX_FEE_COEFFICIENT);
-            } else {
-                feeCoefficient = BigDecimal.ONE.add(EscConst.LOCAL_TX_FEE_COEFFICIENT).add(EscConst.REMOTE_TX_FEE_COEFFICIENT);
+            try {
+                send_ads(txAmount.toString(), null, null);
+            } catch (TransferBlockedDueToUpcomingDormantFeeException e) {
+                log.info("Transaction blocked due to upcoming dormant fee. Will be tried again");
+                EscUtils.waitForNextBlock();
+
+                // reset sender state
+                LogChecker logChecker = new LogChecker();
+                logChecker.setResp(FunctionCaller.getInstance().getLog(txSender.getUserData()));
+                txSender.setStartBalance(logChecker.getBalanceFromAccountObject());
+                txSender.setLastEventTimestamp(logChecker.getLastEventTimestamp().incrementEventNum());
+
+                // send again
+                availableAmount = txSender.getStartBalance().subtract(minAccountBalance);
+                txAmount = getMaximalTxAmount(senderAddress, receiverAddress, availableAmount);
+                try {
+                    send_ads(txAmount.toString(), null, null);
+                } catch (TransferBlockedDueToUpcomingDormantFeeException ex) {
+                    log.error("Transaction blocked due to upcoming dormant fee");
+                }
             }
-            BigDecimal txAmount = availableAmount.divide(feeCoefficient, 11, RoundingMode.FLOOR);
-
-            // increase transfer amount and check if it can be done
-            BigDecimal expBalance;
-            BigDecimal minAmount = new BigDecimal("0.00000000001");
-            log.debug("txAmount  pre: {}", txAmount);
-            do {
-                txAmount = txAmount.add(minAmount);
-                log.debug("txAmount  ins: {}", txAmount);
-                expBalance = availableAmount.subtract(txAmount).subtract(getTransferFee(senderAddress, receiverAddress, txAmount));
-            } while (expBalance.compareTo(BigDecimal.ZERO) >= 0);
-            txAmount = txAmount.subtract(minAmount);
-            log.debug("txAmount post: {}", txAmount);
-
-            send_ads(txAmount.toString(), null, null);
         }
+    }
+
+    private BigDecimal getMaximalTxAmount(String senderAddress, String receiverAddress, BigDecimal availableAmount) {
+        BigDecimal feeCoefficient;
+        if (UserData.isAccountFromSameNode(senderAddress, receiverAddress)) {
+            feeCoefficient = BigDecimal.ONE.add(EscConst.LOCAL_TX_FEE_COEFFICIENT);
+        } else {
+            feeCoefficient = BigDecimal.ONE.add(EscConst.LOCAL_TX_FEE_COEFFICIENT).add(EscConst.REMOTE_TX_FEE_COEFFICIENT);
+        }
+        // approximated value of maximal transfer amount
+        BigDecimal txAmount = availableAmount.divide(feeCoefficient, 11, RoundingMode.FLOOR);
+
+        // increase transfer amount and check if it can be done
+        BigDecimal expectedBalance;
+        BigDecimal minAmount = new BigDecimal("0.00000000001");
+        do {
+            txAmount = txAmount.add(minAmount);
+            expectedBalance = availableAmount.subtract(txAmount).subtract(getTransferFee(senderAddress, receiverAddress, txAmount));
+        } while (expectedBalance.compareTo(BigDecimal.ZERO) >= 0);
+        return txAmount.subtract(minAmount);
     }
 
     @When("^wait for balance update")
